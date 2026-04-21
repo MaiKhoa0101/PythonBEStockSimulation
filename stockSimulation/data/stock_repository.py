@@ -6,16 +6,16 @@ stocks_list_global = [
     {"name":"FPT", "price":130,"quantity": 2000},
     {"name":"HPG", "price":26,"quantity": 8000}
 ]
-listStock=[]
+listStocks=[]
+
 def initStockList():
     return stocks_list_global
 
 def getListIndexAvailableRepo():
-    if (listStock == []):
-        for i in stocks_list_global:
-            listStock.append(Stock(i["name"],i["price"],i["quantity"]))
-            # print(f"Đã append {listStock[-1]}")
-    return listStock
+    global listStocks
+    if (listStocks == []):
+        listStocks = list(stocks_list_global)
+    return listStocks
 
 def getIndexWithNameRepo(stlist,name):
     for i in stocks_list_global:

@@ -48,3 +48,27 @@ b=10
 print (float(a))
 print (str(a))
 print (complex(a,b))
+
+
+ids = [201, 302, 10.03]
+names = ["a","b","c"]
+print(list(zip(ids,names)))
+
+print (list(filter(lambda x: type(x) is int,list(ids))))
+
+
+user = {
+    "id":1,
+    "name":"John",
+    "age": 30,
+    "city":"berlin"
+}
+cleaned_user = {
+    k: v.upper()
+    for k,v in user.items()
+    if (type(v) is str)
+}
+# for k,v in user.items():
+#     if (type(v) is str):
+#         cleaned_user[k]=v.upper()
+print (cleaned_user)

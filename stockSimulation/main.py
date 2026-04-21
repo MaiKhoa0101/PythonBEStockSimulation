@@ -1,5 +1,5 @@
-
-from presentation import stock_list, buy_sell, wallet_detail
+from presentation.demoCLI import wallet_detail
+from presentation.demoCLI import buy_sell, stock_list
 
 
 choice=0
@@ -7,7 +7,7 @@ choice=0
 
 
 while (choice !=5):
-    print("\Main menu: \n\t1. See list stocks\n\t2. Buy stocks\n\t3.Sell stocks\n\t4. See your stocks\n\t5.Exit")
+    print("Main menu: \n\t1. See list stocks\n\t2. Buy stocks\n\t3.Sell stocks\n\t4. See your stocks\n\t5.Exit")
     choice=input("Your choice: ")
     print(f"your choice is {choice} and type is {type(choice)}")
     if (choice == "1"):
