@@ -1,1 +1,0 @@
-Chứa interface của repository

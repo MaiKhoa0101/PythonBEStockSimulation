@@ -1,1 +1,1 @@
-# Giao diện dịch vụ ngoài (VD: IMarketDataService)
+# Chứa interface hoặc abstract

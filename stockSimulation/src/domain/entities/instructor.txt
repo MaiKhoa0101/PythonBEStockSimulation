@@ -1,0 +1,1 @@
+ # Thực thể thuần túy (class Stock, class Wallet)

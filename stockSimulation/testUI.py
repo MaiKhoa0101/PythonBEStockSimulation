@@ -1,5 +1,5 @@
 from src.presentation.demoCLI import buy_sell, stock_list, wallet_detail
-
+# Chạy file này để test trên terminal lấy dữ liệu
 choice=0
 
 

@@ -1,0 +1,1 @@
+Cài đặt chi tiết các interface hoặc abstract class
