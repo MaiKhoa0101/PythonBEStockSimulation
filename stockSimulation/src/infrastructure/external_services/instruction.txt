@@ -1,0 +1,1 @@
+Triển khai gọi API bên ngoài

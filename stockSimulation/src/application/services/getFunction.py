@@ -1,4 +1,5 @@
-from data import stock_repository, wallet_repository, stock_simulation
+from src.infrastructure.database.repositories import stock_repository
+
 
 def getIndexWithName(stockList,name):
     return stock_repository.getIndexWithNameRepo(stockList,name)

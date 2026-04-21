@@ -1,0 +1,1 @@
+Ánh xạ vào DB, khác với Domain Entity

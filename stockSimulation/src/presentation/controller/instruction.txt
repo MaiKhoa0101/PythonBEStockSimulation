@@ -1,0 +1,5 @@
+Xử lý API (URL, Request, Response)
+# Các file định tuyến URL
+│   │   │   ├── stocks.py       # API liên quan cổ phiếu (GET /stocks, GET /stocks/{id})
+│   │   │   └── users.py        # API liên quan user (POST /buy, GET /wallet)
+│   │   └── dependencies.py     # Các hàm dùng chung cho API (ví dụ: kiểm tra đăng nhập)

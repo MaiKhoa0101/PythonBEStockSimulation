@@ -1,5 +1,5 @@
 #stock_repository
-from data.stock_data_type import Stock
+from src.domain.entities.stocks import Stock
 
 stocks_list_global = [
     {"name": "VIC","price": 150, "quantity": 3000},

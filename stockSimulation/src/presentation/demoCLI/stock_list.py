@@ -1,4 +1,5 @@
-from domain.getFunction import getIndexWithName, getListIndexAvailable
+from src.application.services.getFunction import getIndexWithName, getListIndexAvailable
+
 
 def see_all_stocks():
     choice=0
@@ -18,8 +19,8 @@ def see_all_stocks():
 
 
 
-from data import stock_data_type
-stockList = stock_data_type.StockList
+from src.domain.entities import stocks
+stockList = stocks.StockList
 
 def see_details_of_stock_by_name(name):
     stock = getIndexWithName(stockList,name)

@@ -1,0 +1,1 @@
+Code triển khai thực tế của Interface ở Domain
