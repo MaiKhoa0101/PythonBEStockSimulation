@@ -1,12 +1,13 @@
 from fastapi import FastAPI
-from src.presentation.controller.v1 import get_movie_list
+from src.presentation.controller.v1 import movies
+from src.presentation.controller.v1 import users
 
 app = FastAPI()
 
 
 # Gắn router vào ứng dụng chính
-app.include_router(get_movie_list.router, prefix="/api/v1")
-
+app.include_router(movies.router, prefix="/api/v1/movies")
+app.include_router(users.router, prefix="/api/v1/users")
 @app.get("/")
 def root():
     return {"message": "Server is running! Access /docs for Swagger UI"}

@@ -3,8 +3,9 @@
 from typing import Protocol, Any 
 
 #Là cú pháp interface, I đầu tên là quy ước cho interface
-class IMoviesService(Protocol): 
+class IGetListMoviesService(Protocol): 
     async def fetch_movies_list() -> Any:
         ... 
+class IGetMoviesDetailByName(Protocol):
     async def fetch_movie_detail_by_name(name: str) -> Any:
         ...
