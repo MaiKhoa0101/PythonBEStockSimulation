@@ -1,10 +1,8 @@
 from fastapi import FastAPI
 from src.presentation.controller.v1 import get_movie_list
 
-app = FastAPI(
-    title="Movies Backend API",
-    version="1.0.0"
-)
+app = FastAPI()
+
 
 # Gắn router vào ứng dụng chính
 app.include_router(get_movie_list.router, prefix="/api/v1")

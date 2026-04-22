@@ -10,4 +10,11 @@ class MoviesRepositories(IMoviesRepository):
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             response.raise_for_status() # báo lỗi
-        #return {"message": "Test thanh cong"}
+        return response.json()
+
+    async def fetch_movie_detail_by_name(self, name: str):
+        url = f"https://phimapi.com/phim/{name}"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url)
+            response.raise_for_status() # báo lỗi
+        return response.json()
