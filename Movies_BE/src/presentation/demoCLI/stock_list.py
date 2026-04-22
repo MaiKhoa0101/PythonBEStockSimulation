@@ -1,4 +1,3 @@
-from src.application.services.getFunction import getIndexWithName, getListIndexAvailable
 
 
 def see_all_stocks():
@@ -23,9 +22,9 @@ from src.domain.entities import stocks
 stockList = stocks.StockList
 
 def see_details_of_stock_by_name(name):
-    stock = getIndexWithName(stockList,name)
+    stock = getMovieWithName(stockList,name)
     if (stock):
-        print(f"Details for stock '{stock.name}': {getIndexWithName(stockList,name)}")
+        print(f"Details for stock '{stock.name}': {getMovieWithName(stockList,name)}")
     else:
         print(f"Stock '{name}' not found in the list.")
     
