@@ -7,7 +7,6 @@ from src.application.interfaces.services.movies_data_interface import IMoviesSer
 from src.infrastructure.database.repositories.movie_repository import MoviesRepositories
 from src.infrastructure.services.get_movie_list import GetListMovieQuery
 
-#Định nghĩa kiểu trả về cho
 def get_movies_repository() -> IMoviesRepository:
     return MoviesRepositories()
 
