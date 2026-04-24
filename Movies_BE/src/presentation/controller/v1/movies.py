@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends
 
-from src.application.interfaces.services.movies_data_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName
-from src.presentation.controller.dependencies import IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency
+from src.application.dtos.movie_dto import MovieCreateDTO
+from src.domain.entities.movie import Movie
+from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie
+from src.presentation.controller.dependencies import ICreateMovieDependency, IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency
 
 router = APIRouter()
 
@@ -42,10 +44,23 @@ async def api_get_movie_detail_by_id(
     }
 
 
+@router.post("/create")
+async def api_create_movie(
+    movie_data: MovieCreateDTO,
+    createMovieService: ICreateMovie = Depends(ICreateMovieDependency)
+):
+    result = await createMovieService.create_movie(
+        movie_data
+    )
+    print(f"result create: {result}")
+    return {
+        "status":"success",
+        "result": result
+    }
+
 @router.post("/favourite_list/{name}")
 async def api_post_movie_into_favourite_list(
     name:str,
-
 ):
     return{
         "status":"success",

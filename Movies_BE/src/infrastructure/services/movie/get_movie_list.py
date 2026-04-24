@@ -1,7 +1,7 @@
 from slugify import slugify
 
 from src.application.interfaces.external_services.movie_apu_gateway_interface import IMovieApiGateway
-from src.application.interfaces.services.movies_data_interface import IGetListMoviesService
+from src.application.interfaces.services.movies_service_interface import IGetListMoviesService
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
 
 

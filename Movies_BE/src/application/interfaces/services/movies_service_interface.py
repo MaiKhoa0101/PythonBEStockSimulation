@@ -1,8 +1,7 @@
-# Dùng để gợi ý code trên các IDE, 
-# rất tiếc là cài trên vscode nên chưa test được nó gợi ý cái gì
-from typing import Protocol, Any 
+from typing import Protocol, Any
 
-#Là cú pháp interface, I đầu tên là quy ước cho interface
+from src.application.dtos.movie_dto import MovieCreateDTO 
+
 class IGetListMoviesService(Protocol): 
     async def fetch_movies_list() -> Any:
         ... 
@@ -12,4 +11,8 @@ class IGetMoviesDetailByName(Protocol):
 
 class IGetMoviesDetailById(Protocol):
     async def fetch_movie_detail_by_id(id: str) -> Any:
+        ...
+
+class ICreateMovie(Protocol):
+    async def create_movie(movie_data:MovieCreateDTO):
         ...

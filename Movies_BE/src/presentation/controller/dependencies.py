@@ -2,14 +2,15 @@
 
 from fastapi import Depends
 
+from src.infrastructure.services.movie.create_movie import CreateMovie
 from src.application.interfaces.external_services.movie_apu_gateway_interface import IMovieApiGateway
 from src.infrastructure.external_services.movie_api_gateway import MovieApiGateway
-from src.infrastructure.services.get_movie_by_id import GetMoviesDetailById
-from src.infrastructure.services.get_movie_by_name import GetMoviesDetailByName
+from src.infrastructure.services.movie.get_movie_by_id import GetMoviesDetailById
+from src.infrastructure.services.movie.get_movie_by_name import GetMoviesDetailByName
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
-from src.application.interfaces.services.movies_data_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName
+from src.application.interfaces.services.movies_service_interface import ICreateMovie, IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName
 from src.infrastructure.database.repositories.movie_repository import MoviesRepositories
-from src.infrastructure.services.get_movie_list import GetListMovies
+from src.infrastructure.services.movie.get_movie_list import GetListMovies
 from sqlalchemy.orm import Session
 from src.infrastructure.database.session import get_db
 
@@ -38,3 +39,11 @@ def IGetMoviesDetailByIdDependency(
     movie_repository: IMoviesRepository = Depends(IMoviesRepositoryDependency)
 ) -> IGetMoviesDetailById:
     return GetMoviesDetailById(movie_repository=movie_repository)
+
+
+def ICreateMovieDependency(
+    movie_repository: IMoviesRepository = Depends(IMoviesRepositoryDependency)
+) -> ICreateMovie:
+    return CreateMovie(
+        movie_repository = movie_repository
+    )

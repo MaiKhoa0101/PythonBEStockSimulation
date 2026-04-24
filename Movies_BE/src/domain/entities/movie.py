@@ -21,15 +21,13 @@ class Movie:
     id: str
     slug_name: str
     is_series: bool
+
+    name: str = "Chưa có tên"
     description: Optional[str] = None
-    
-    # Chú ý: Ở Model ta dùng 'relationship', còn ở Entity ta dùng List (Danh sách) thuần túy
-    episodes: List[Episode] = field(default_factory=list)
-    
+    episodes: List['Episode'] = field(default_factory=list) # Dùng ngoặc kép 'Episode' nếu Episode khai báo ở dưới, hoặc để trần nếu khai báo ở trên
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    # THÊM HÀNH VI NGHIỆP VỤ (Chỉ Entity mới có)
     def is_valid_series(self) -> bool:
         """Logic kiểm tra: Nếu là phim bộ thì phải có nhiều hơn 1 tập"""
         if self.is_series and len(self.episodes) <= 1:

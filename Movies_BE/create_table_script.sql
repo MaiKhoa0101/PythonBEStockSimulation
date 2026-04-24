@@ -44,3 +44,6 @@
 --     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 --     updated_by VARCHAR(50)
 -- );
+
+use movie_system;
+select * from movie

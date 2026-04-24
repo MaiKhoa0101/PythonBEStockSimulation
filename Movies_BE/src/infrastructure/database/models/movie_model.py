@@ -3,14 +3,15 @@ from sqlalchemy import Boolean, Column, String, DateTime, ForeignKey
 from src.infrastructure.database.session import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-
+import uuid
 class MovieModel(Base):
     __tablename__ = "movie"
 
-    id = Column(String(50), primary_key=True, server_default=func.uuid())
+    id = Column(String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(50))
     slug_name = Column(String(50))
     is_series = Column(Boolean, default=False)
-    description = Column(String(100))
+    description = Column(String(1000))
     
     created_at = Column(DateTime, server_default=func.now())
     created_by = Column(String(50))
@@ -24,7 +25,7 @@ class MovieModel(Base):
 class EpisodeModel(Base):
     __tablename__ = "episode"
 
-    id = Column(String(50), primary_key=True, server_default=func.uuid())
+    id = Column(String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
     # Khai báo khóa ngoại trỏ về cột id của bảng movie
     id_movie = Column(String(50), ForeignKey("movie.id"))
     link_video = Column(String(100))

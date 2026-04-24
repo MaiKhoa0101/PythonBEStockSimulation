@@ -1,7 +1,7 @@
 # Phương án 2
 from slugify import slugify
 
-from src.application.interfaces.services.movies_data_interface import IGetListMoviesService, IGetMoviesDetailByName
+from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailByName
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
 
     

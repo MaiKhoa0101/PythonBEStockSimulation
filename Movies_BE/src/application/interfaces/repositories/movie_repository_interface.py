@@ -1,6 +1,8 @@
 
 from typing import Protocol
 
+from src.domain.entities.movie import Movie
+
 
 class IMoviesRepository(Protocol):
     async def fetch_movies_list(self):
@@ -14,5 +16,11 @@ class IMoviesRepository(Protocol):
     async def fetch_movie_detail_by_id(
         self,
         id: str
+    ):
+        ...
+
+    async def create_movie(
+        self,
+        movie_entity: Movie
     ):
         ...
