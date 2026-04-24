@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from src.application.dtos.movie_dto import MovieCreateDTO
+from src.presentation.dtos.movie_dto import MovieCreateDTO
 from src.domain.entities.movie import Movie
 from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie
 from src.presentation.controller.dependencies import ICreateMovieDependency, IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency

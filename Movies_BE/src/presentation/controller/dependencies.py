@@ -3,7 +3,7 @@
 from fastapi import Depends
 
 from src.infrastructure.services.movie.create_movie import CreateMovie
-from src.application.interfaces.external_services.movie_apu_gateway_interface import IMovieApiGateway
+from src.application.interfaces.external_services.movie_api_gateway_interface import IMovieApiGateway
 from src.infrastructure.external_services.movie_api_gateway import MovieApiGateway
 from src.infrastructure.services.movie.get_movie_by_id import GetMoviesDetailById
 from src.infrastructure.services.movie.get_movie_by_name import GetMoviesDetailByName

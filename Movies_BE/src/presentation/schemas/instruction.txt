@@ -1,3 +1,0 @@
-│   ├── schemas/                # Lớp Xác thực dữ liệu
-│   │   ├── stock_schema.py     # Quy định form dữ liệu đầu vào/đầu ra cho API cổ phiếu
-│   │   └── user_schema.py      # Quy định form dữ liệu mua/bán

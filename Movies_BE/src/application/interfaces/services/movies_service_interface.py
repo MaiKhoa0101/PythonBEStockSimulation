@@ -1,6 +1,6 @@
 from typing import Protocol, Any
 
-from src.application.dtos.movie_dto import MovieCreateDTO 
+from src.presentation.dtos.movie_dto import MovieCreateDTO 
 
 class IGetListMoviesService(Protocol): 
     async def fetch_movies_list() -> Any:

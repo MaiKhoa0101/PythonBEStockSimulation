@@ -1,7 +1,7 @@
 
 
 from src.domain.entities.movie import Episode, Movie
-from src.application.dtos.movie_dto import MovieCreateDTO
+from src.presentation.dtos.movie_dto import MovieCreateDTO
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
 from src.application.interfaces.services.movies_service_interface import ICreateMovie
 

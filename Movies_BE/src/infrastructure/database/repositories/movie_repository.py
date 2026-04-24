@@ -1,5 +1,5 @@
 import httpx
-from src.application.dtos.movie_dto import MovieCreateDTO
+from src.presentation.dtos.movie_dto import MovieCreateDTO
 from src.domain.entities.movie import Movie
 from src.infrastructure.database.models.movie_model import EpisodeModel, MovieModel
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository

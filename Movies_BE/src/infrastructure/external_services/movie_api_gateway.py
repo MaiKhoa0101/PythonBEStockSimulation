@@ -1,6 +1,6 @@
 import httpx
 
-from src.application.interfaces.external_services.movie_apu_gateway_interface import IMovieApiGateway
+from src.application.interfaces.external_services.movie_api_gateway_interface import IMovieApiGateway
 
 
 class MovieApiGateway(IMovieApiGateway):
