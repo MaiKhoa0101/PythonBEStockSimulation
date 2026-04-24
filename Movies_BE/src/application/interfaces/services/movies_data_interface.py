@@ -9,3 +9,7 @@ class IGetListMoviesService(Protocol):
 class IGetMoviesDetailByName(Protocol):
     async def fetch_movie_detail_by_name(name: str) -> Any:
         ...
+
+class IGetMoviesDetailById(Protocol):
+    async def fetch_movie_detail_by_id(id: str) -> Any:
+        ...

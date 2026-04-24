@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from src.application.interfaces.services.movies_data_interface import IGetListMoviesService, IGetMoviesDetailByName
-from src.presentation.controller.dependencies import IGetListMoviesServiceDependency, IGetMoviesDetailByNameDependency
+from src.application.interfaces.services.movies_data_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName
+from src.presentation.controller.dependencies import IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency
 
 router = APIRouter()
 
@@ -16,7 +16,7 @@ async def api_get_movie_list(
         "data": result
     }
 
-@router.get("/{name}")
+@router.get("/name/{name}")
 async def api_get_movie_detail_by_name(
     name: str,
     getMovieByNameService: IGetMoviesDetailByName = Depends(IGetMoviesDetailByNameDependency)
@@ -26,4 +26,28 @@ async def api_get_movie_detail_by_name(
     return {
         "status": "success",
         "data": result
+    }
+
+
+@router.get("/id/{id}")
+async def api_get_movie_detail_by_id(
+    id: str,
+    getMovieByIdService: IGetMoviesDetailById = Depends(IGetMoviesDetailByIdDependency)
+):
+    # Gọi hàm execute của Query
+    result = await getMovieByIdService.fetch_movie_detail_by_id(id)
+    return {
+        "status": "success",
+        "data": result
+    }
+
+
+@router.post("/favourite_list/{name}")
+async def api_post_movie_into_favourite_list(
+    name:str,
+
+):
+    return{
+        "status":"success",
+        "data":"Thành công"
     }
