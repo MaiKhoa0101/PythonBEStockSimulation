@@ -2,7 +2,7 @@
 
 from fastapi import Depends
 
-from src.infrastructure.services.movie.delete_movie import DeleteMovieById
+from src.infrastructure.services.movie.delete_movie import DeleteMovie
 from src.infrastructure.services.movie.patch_movie import PatchMovie
 from src.infrastructure.services.movie.update_movie import UpdateEntireMovie
 from src.infrastructure.services.movie.create_movie import CreateMovie
@@ -11,7 +11,7 @@ from src.infrastructure.external_services.movie_api_gateway import MovieApiGatew
 from src.infrastructure.services.movie.get_movie_by_id import GetMoviesDetailById
 from src.infrastructure.services.movie.get_movie_by_name import GetMoviesDetailByName
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
-from src.application.interfaces.services.movies_service_interface import ICreateMovie, IDeleteMovieById, IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, IPatchMovie, IUpdateEntireMovie
+from src.application.interfaces.services.movies_service_interface import ICreateMovie, IDeleteMovie, IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, IPatchMovie, IUpdateEntireMovie
 from src.infrastructure.database.repositories.movie_repository import MoviesRepositories
 from src.infrastructure.services.movie.get_movie_list import GetListMovies
 from sqlalchemy.orm import Session
@@ -67,7 +67,7 @@ def IPatchMovieDependency(
 
 def IDeleteMovieDependency(
     movie_repository: IMoviesRepository = Depends(IMoviesRepositoryDependency)
-)-> IDeleteMovieById:
-    return DeleteMovieById(
+)-> IDeleteMovie:
+    return DeleteMovie(
         movie_repository=movie_repository
     )

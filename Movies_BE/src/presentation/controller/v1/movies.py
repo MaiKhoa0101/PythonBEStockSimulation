@@ -134,9 +134,9 @@ async def api_patch_movie(
 @router.delete("/delete-by-id/{id}")
 async def api_delete_movie(
     id:str =Path(...),
-    deleteMovieByIdService= Depends(IDeleteMovieDependency)
+    DeleteMovieService= Depends(IDeleteMovieDependency)
 ):
-    result = await deleteMovieByIdService.delete_movie_by_id(id)
+    result = await DeleteMovieService.delete_movie_by_id(id)
     
     if result:
         return{

@@ -25,6 +25,6 @@ class IPatchMovie(Protocol):
     async def patch_movie(id:str ,movie_data: MoviePatchDTO):
         ...
 
-class IDeleteMovieById(Protocol):
+class IDeleteMovie(Protocol):
     async def delete_movie_by_id(id:str):
         ...

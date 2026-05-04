@@ -1,9 +1,9 @@
 
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
-from src.application.interfaces.services.movies_service_interface import IDeleteMovieById
+from src.application.interfaces.services.movies_service_interface import IDeleteMovie
 
 
-class DeleteMovieById(IDeleteMovieById):
+class DeleteMovie(IDeleteMovie):
     def __init__(
         self,
         movie_repository: IMoviesRepository
