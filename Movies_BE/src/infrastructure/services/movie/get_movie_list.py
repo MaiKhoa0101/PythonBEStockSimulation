@@ -17,6 +17,8 @@ class GetListMovies(IGetListMoviesService):
     async def fetch_movies_list(self):
         print(" Vào được đây")
         data = await self.movie_repository.fetch_movies_list()
-        if (not data):
+        if not data:
             data = await self.movie_external_service.fetch_movies_list()
+        if not data: #ko thanh cong
+            return None
         return data

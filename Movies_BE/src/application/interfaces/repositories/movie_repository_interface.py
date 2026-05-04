@@ -43,4 +43,10 @@ class IMoviesRepository(Protocol):
     ):
         ...
 
+    async def delete_movie_by_id(
+        self,
+        id: str
+    ):
+        ...
+
     

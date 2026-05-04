@@ -52,3 +52,8 @@ select * from movie;
 -- select * from episode;
 
 -- select * from episode;
+-- Thêm cột is_deleted vào bảng movie
+-- ALTER TABLE movie ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+
+-- Thêm cột is_deleted vào bảng episode (nếu bạn có làm cho episode)
+-- ALTER TABLE episode ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;

@@ -40,5 +40,7 @@ class CreateMovie(ICreateMovie):
         created_movie_entity = await self.movie_repository.create_movie(
             movie_entity=new_movie_entity
         )
-        print ("Kết quả ở service: ",created_movie_entity)
+
+        if not created_movie_entity: #ko thanh cong
+            return None
         return created_movie_entity

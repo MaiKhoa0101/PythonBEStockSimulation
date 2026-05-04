@@ -12,4 +12,7 @@ class GetMoviesDetailByName(IGetMoviesDetailByName):
     async def fetch_movie_detail_by_name(self, name: str):
         #Xử lí name thành định dạng không dấu và gạch ngang như one piece -> one-piece
         formatted_name = slugify(name)
-        return await self.movie_repository.fetch_movie_detail_by_name(formatted_name)
+        result = await self.movie_repository.fetch_movie_detail_by_name(formatted_name)
+        if not result: #ko thanh cong
+            return None
+        return result

@@ -11,8 +11,9 @@ class MoviesRepositories(IMoviesRepository):
     
     
     async def fetch_movies_list(self):
-        print ("Vào được repo")
-        db_movies = self.db.query(MovieModel).all() 
+        db_movies = self.db.query(MovieModel).filter(
+            MovieModel.is_deleted == False
+        ).all() 
         result = [
             Movie(
                 id=db_movie.id,
@@ -22,9 +23,7 @@ class MoviesRepositories(IMoviesRepository):
                 description=db_movie.description,
                 
                 created_at=db_movie.created_at,
-                created_by=db_movie.created_by,
                 updated_at=db_movie.updated_at,
-                updated_by=db_movie.updated_by
             )
             for db_movie in db_movies
         ]
@@ -33,12 +32,18 @@ class MoviesRepositories(IMoviesRepository):
     
     async def fetch_movie_detail_by_name(self, name: str):
         
-        db_movie = self.db.query(MovieModel).filter(MovieModel.slug_name == name).first()
+        db_movie = self.db.query(MovieModel).filter(
+            MovieModel.slug_name == name,
+            MovieModel.is_deleted == False
+        ).first()
         return db_movie
     
     async def fetch_movie_detail_by_id(self, id: str):
         
-        db_movie = self.db.query(MovieModel).filter(MovieModel.id == id).first()
+        db_movie = self.db.query(MovieModel).filter(
+            MovieModel.id == id,
+            MovieModel.is_deleted == False
+        ).first()
         return db_movie
 
     async def create_movie(self, movie_entity: Movie) -> Movie:
@@ -77,7 +82,10 @@ class MoviesRepositories(IMoviesRepository):
         self,
         movie_entity:Movie
     ):     
-        db_movie = self.db.query(MovieModel).filter(MovieModel.id == movie_entity.id).first()
+        db_movie = self.db.query(MovieModel).filter(
+            MovieModel.id == movie_entity.id,
+            MovieModel.is_deleted == False
+        ).first()
         if not db_movie:
             return None
         
@@ -104,7 +112,10 @@ class MoviesRepositories(IMoviesRepository):
         return movie_entity
     
     async def patch_movie(self, movie_entity):
-        db_movie = self.db.query(MovieModel).filter(MovieModel.id == movie_entity.id).first()
+        db_movie = self.db.query(MovieModel).filter(
+            MovieModel.id == movie_entity.id,
+            MovieModel.is_deleted == False
+        ).first()
         if not db_movie:
             return None
         
@@ -129,7 +140,10 @@ class MoviesRepositories(IMoviesRepository):
 
     
     async def upsert_episode(self, movie_entity):
-        db_movie = self.db.query(MovieModel).filter(MovieModel.id == movie_entity.id).first()
+        db_movie = self.db.query(MovieModel).filter(
+            MovieModel.id == movie_entity.id,
+            MovieModel.is_deleted == False
+        ).first()
         
         #check có cập nhật episode ko
         if movie_entity.episodes:
@@ -158,3 +172,19 @@ class MoviesRepositories(IMoviesRepository):
                 
                 db_movie.episodes.append(existed_ep)
         self.db.commit()
+
+    async def delete_movie_by_id(self, id):
+        db_movie = self.db.query(MovieModel).filter(
+            MovieModel.id == id,
+            MovieModel.is_deleted == False 
+        ).first()
+
+        if not db_movie:   
+            return None
+        
+        db_movie.is_deleted=True
+
+        self.db.commit()
+
+        return True
+

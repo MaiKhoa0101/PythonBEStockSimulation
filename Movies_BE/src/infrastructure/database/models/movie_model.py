@@ -12,6 +12,7 @@ class MovieModel(Base):
     slug_name = Column(String(50))
     is_series = Column(Boolean, default=False)
     description = Column(String(1000))
+    is_deleted = Column(Boolean, default=False)
     
     created_at = Column(DateTime, server_default=func.now())
     created_by = Column(String(50))

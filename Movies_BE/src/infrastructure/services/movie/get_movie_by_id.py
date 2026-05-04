@@ -14,4 +14,8 @@ class GetMoviesDetailById(IGetMoviesDetailById):
 
     async def fetch_movie_detail_by_id(self, id: str) -> Any:
         print("Vào được fetch_movie_detail_by_id")
-        return await self.movie_repository.fetch_movie_detail_by_id(id)
+        result = await self.movie_repository.fetch_movie_detail_by_id(id)
+
+        if not result: #ko thanh cong
+            return None
+        return result

@@ -18,9 +18,7 @@ class PatchMovie(IPatchMovie):
 
         existing_movie= await self.movie_repository.fetch_movie_detail_by_id(id)
         if not existing_movie:
-            raise Exception("Movie not found")
-
-        episode_entities = []
+            return None
         if movie_data.episodes:
             for episode in movie_data.episodes:
                 ep_entity = Episode(
@@ -43,4 +41,9 @@ class PatchMovie(IPatchMovie):
         updated_movie_entity = await self.movie_repository.patch_movie(
             movie_entity=existing_movie
         )
+
+        if not updated_movie_entity: #ko thanh cong
+            return None
         return updated_movie_entity
+
+   
