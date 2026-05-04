@@ -18,9 +18,10 @@ class ICreateMovie(Protocol):
         ...
 
 class IUpdateEntireMovie(Protocol):
-    async def update_entire_movie(id: str, movie_data: MovieUpdateDTO):
+    async def update_entire_movie(id:str , movie_data: MovieUpdateDTO):
         ...
 
 class IPatchMovie(Protocol):
-    async def patch_movie(movie_data: MoviePatchDTO):
+    async def patch_movie(id:str ,movie_data: MoviePatchDTO):
         ...
+

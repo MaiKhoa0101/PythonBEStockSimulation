@@ -46,4 +46,9 @@
 -- );
 
 use movie_system;
-select * from movie
+-- set SQL_SAFE_UPDATES =0;
+-- delete from movieepisode
+select * from movie;
+-- select * from episode;
+
+-- select * from episode;

@@ -103,29 +103,58 @@ class MoviesRepositories(IMoviesRepository):
         
         return movie_entity
     
-    # async def patch_movie(self, movie_entity):
-    #     db_movie = self.db.query(MovieModel).filter(MovieModel.id == movie_entity.id).first()
-    #     if not db_movie:
-    #         return None
+    async def patch_movie(self, movie_entity):
+        db_movie = self.db.query(MovieModel).filter(MovieModel.id == movie_entity.id).first()
+        if not db_movie:
+            return None
         
-    #     if movie_entity.description is not None:
-    #         db_movie.description = movie_entity.description
-    #     if movie_entity.name is not None:
-    #         db_movie.name = movie_entity.name
-    #     if movie_entity.is_series is not None:
-    #         db_movie.is_series = movie_entity.is_series
-    #     if movie_entity.episodes is not []:
-    #         for episode in movie_entity.episodes:
-    #             ...
-    
-    # async def upsert_episode(self, movie_entity):
-    #     db_movie = self.db.query(MovieModel).filter(MovieModel.id == movie_entity.id).first()
-    #     if movie_entity.episodes:
-    #         for episode in movie_entity.episodes:
-    #             existed = False
+        if movie_entity.description is not None:
+            db_movie.description = movie_entity.description
+        if movie_entity.name is not None:
+            db_movie.name = movie_entity.name
+        if movie_entity.slug_name is not None:
+            db_movie.slug_name= movie_entity.slug_name
+        if movie_entity.is_series is not None:
+            db_movie.is_series = movie_entity.is_series
+        if movie_entity.episodes != []:
+            self.upsert_episode(movie_entity)
+        self.db.commit()
+        self.db.refresh(db_movie)
 
-    #             for db_ep in db_movie.episodes:
-    #                 if (episode.id and episode.id == db_ep.id) or (episode.name and episode.name == db_ep.name):
-    #                     existing_db_episode = db_ep
-    #                 break
-    #             existed = true
+        movie_entity.id = db_movie.id
+        movie_entity.created_at = db_movie.created_at
+        movie_entity.updated_at = db_movie.updated_at
+    
+        return movie_entity
+
+    
+    async def upsert_episode(self, movie_entity):
+        db_movie = self.db.query(MovieModel).filter(MovieModel.id == movie_entity.id).first()
+        
+        #check có cập nhật episode ko
+        if movie_entity.episodes:
+            # Lặp từng episode cập nhật
+            for episode in movie_entity.episodes:
+                existed_ep = None
+
+                # check trong db, coi có trùng id hay name ko,
+                # có thì sửa lên episode gốc
+                # không thì tạo mới
+                for db_ep in db_movie.episodes:
+                    if (episode.id and episode.id == db_ep.id) or (episode.name and episode.name == db_ep.name):
+                        existed_ep = db_ep
+                    break
+                
+                
+                if existed_ep:
+                    if episode.name:
+                        existed_ep.name= episode.name
+                    if episode.description:
+                        existed_ep.description = episode.description
+                    if episode.link_video:
+                        existed_ep.link_video = episode.link_video
+                else:
+                    existed_ep = episode
+                
+                db_movie.episodes.append(existed_ep)
+        self.db.commit()

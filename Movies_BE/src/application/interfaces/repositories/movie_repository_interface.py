@@ -37,4 +37,10 @@ class IMoviesRepository(Protocol):
     ): 
         ...
 
+    async def upsert_episode(
+        self,
+        movie_entity: Movie
+    ):
+        ...
+
     

@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Path
 
-from src.presentation.dtos.movie_dto import MovieCreateDTO, MovieUpdateDTO
+from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO
 from src.domain.entities.movie import Movie
-from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie, IUpdateEntireMovie
-from src.presentation.controller.dependencies import ICreateMovieDependency, IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency, IUpdateEntireMovieDependency
+from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie, IPatchMovie, IUpdateEntireMovie
+from src.presentation.controller.dependencies import ICreateMovieDependency, IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency, IPatchMovieDependency, IUpdateEntireMovieDependency
 
 router = APIRouter()
 
@@ -83,13 +83,17 @@ async def api_update_movie(
     }
 
 
-@router.patch("/update-favourite/{id}")
-async def api_update_favourite_movie(
-    id:str,
+@router.patch("/patch-movie/{id}")
+async def api_patch_movie(
+    id = Path(...),
+    update_batch_movie: MoviePatchDTO = ...,
+    patchMovieService: IPatchMovie= Depends(IPatchMovieDependency)
 ):
+    print("gọi patch")
+    result = await patchMovieService.patch_movie(id,update_batch_movie)
     return{
         "status":"success",
-        "data":"Thành công"
+        "data": result
     }
 
 
