@@ -72,3 +72,60 @@ class MoviesRepositories(IMoviesRepository):
         
         # 4. Trả Entity hoàn chỉnh ngược lên cho Service
         return movie_entity
+
+    async def update_entire_movie(
+        self,
+        movie_entity:Movie
+    ):     
+        db_movie = self.db.query(MovieModel).filter(MovieModel.id == movie_entity.id).first()
+        if not db_movie:
+            return None
+        
+        db_movie.name = movie_entity.name
+        db_movie.slug_name = movie_entity.slug_name
+        db_movie.description = movie_entity.description
+        db_movie.is_series = movie_entity.is_series
+        db_movie.episodes = []
+        for ep_entity in movie_entity.episodes:
+            db_episode = EpisodeModel(
+                name_episode = ep_entity.name_episode,
+                description = ep_entity.description,
+                link_video = ep_entity.link_video
+            )
+            db_movie.episodes.append(db_episode)
+        
+        self.db.commit()
+        self.db.refresh(db_movie)
+
+        movie_entity.id = db_movie.id
+        movie_entity.created_at = db_movie.created_at
+        movie_entity.updated_at = db_movie.updated_at
+        
+        return movie_entity
+    
+    # async def patch_movie(self, movie_entity):
+    #     db_movie = self.db.query(MovieModel).filter(MovieModel.id == movie_entity.id).first()
+    #     if not db_movie:
+    #         return None
+        
+    #     if movie_entity.description is not None:
+    #         db_movie.description = movie_entity.description
+    #     if movie_entity.name is not None:
+    #         db_movie.name = movie_entity.name
+    #     if movie_entity.is_series is not None:
+    #         db_movie.is_series = movie_entity.is_series
+    #     if movie_entity.episodes is not []:
+    #         for episode in movie_entity.episodes:
+    #             ...
+    
+    # async def upsert_episode(self, movie_entity):
+    #     db_movie = self.db.query(MovieModel).filter(MovieModel.id == movie_entity.id).first()
+    #     if movie_entity.episodes:
+    #         for episode in movie_entity.episodes:
+    #             existed = False
+
+    #             for db_ep in db_movie.episodes:
+    #                 if (episode.id and episode.id == db_ep.id) or (episode.name and episode.name == db_ep.name):
+    #                     existing_db_episode = db_ep
+    #                 break
+    #             existed = true

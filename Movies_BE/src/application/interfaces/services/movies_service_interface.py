@@ -1,6 +1,6 @@
 from typing import Protocol, Any
 
-from src.presentation.dtos.movie_dto import MovieCreateDTO 
+from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO 
 
 class IGetListMoviesService(Protocol): 
     async def fetch_movies_list() -> Any:
@@ -15,4 +15,12 @@ class IGetMoviesDetailById(Protocol):
 
 class ICreateMovie(Protocol):
     async def create_movie(movie_data:MovieCreateDTO):
+        ...
+
+class IUpdateEntireMovie(Protocol):
+    async def update_entire_movie(id: str, movie_data: MovieUpdateDTO):
+        ...
+
+class IPatchMovie(Protocol):
+    async def patch_movie(movie_data: MoviePatchDTO):
         ...

@@ -24,3 +24,17 @@ class IMoviesRepository(Protocol):
         movie_entity: Movie
     ):
         ...
+
+    async def update_entire_movie(
+        self,
+        movie_entity: Movie
+    ):
+        ...
+
+    async def patch_movie(
+        self,
+        movie_entity: Movie
+    ): 
+        ...
+
+    

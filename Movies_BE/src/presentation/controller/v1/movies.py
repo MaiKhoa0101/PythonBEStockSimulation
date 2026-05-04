@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 
-from src.presentation.dtos.movie_dto import MovieCreateDTO
+from src.presentation.dtos.movie_dto import MovieCreateDTO, MovieUpdateDTO
 from src.domain.entities.movie import Movie
-from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie
-from src.presentation.controller.dependencies import ICreateMovieDependency, IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency
+from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie, IUpdateEntireMovie
+from src.presentation.controller.dependencies import ICreateMovieDependency, IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency, IUpdateEntireMovieDependency
 
 router = APIRouter()
 
@@ -61,6 +61,41 @@ async def api_create_movie(
 @router.post("/favourite_list/{name}")
 async def api_post_movie_into_favourite_list(
     name:str,
+):
+    return{
+        "status":"success",
+        "data":"Thành công"
+    }
+
+@router.put("/update/{id}")
+async def api_update_movie(
+    id = Path(...),
+    updateMovieDTO: MovieUpdateDTO = ...,
+    updateEntireMovieService : IUpdateEntireMovie = Depends(IUpdateEntireMovieDependency)
+):
+    result = await updateEntireMovieService.update_entire_movie(
+        id,
+        updateMovieDTO
+    )
+    return{
+        "status":"success",
+        "data":result
+    }
+
+
+@router.patch("/update-favourite/{id}")
+async def api_update_favourite_movie(
+    id:str,
+):
+    return{
+        "status":"success",
+        "data":"Thành công"
+    }
+
+
+@router.delete("/delete/{id}")
+async def api_delete_movie(
+    id:str,
 ):
     return{
         "status":"success",

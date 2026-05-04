@@ -18,18 +18,18 @@ class Episode:
 
 @dataclass
 class Movie:
-    id: str
-    slug_name: str
-    is_series: bool
+    id: str = None
+    slug_name: str = None
+    is_series: bool = None
 
-    name: str = "Chưa có tên"
+    name: str = None
     description: Optional[str] = None
     episodes: List['Episode'] = field(default_factory=list) # Dùng ngoặc kép 'Episode' nếu Episode khai báo ở dưới, hoặc để trần nếu khai báo ở trên
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
     def is_valid_series(self) -> bool:
-        """Logic kiểm tra: Nếu là phim bộ thì phải có nhiều hơn 1 tập"""
+        #Logic kiểm tra: Nếu là phim bộ thì phải có nhiều hơn 1 tập
         if self.is_series and len(self.episodes) <= 1:
             return False
         return True

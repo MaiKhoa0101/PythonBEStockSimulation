@@ -49,6 +49,21 @@ class MovieCreateDTO(MovieBaseDTO):
     # Thêm dòng này để hứng mảng các tập phim:
     episodes: List[EpisodeCreateDTO] = []
 
+class MovieUpdateDTO(MovieBaseDTO):
+    name: str
+    slug_name: str
+    is_series: bool = False
+    description: str
+    # Thêm dòng này để hứng mảng các tập phim:
+    episodes: List[EpisodeCreateDTO] = []
+
+class MoviePatchDTO(MovieBaseDTO):
+    name: Optional[str] = None
+    slug_name: Optional[str] = None
+    is_series: Optional[bool] = None
+    description: Optional[str] = None
+    episodes: Optional[List[EpisodeCreateDTO]] = None
+
 # 2.3 Response: Dùng khi trả dữ liệu phim về cho Client
 class MovieResponseDTO(MovieBaseDTO):
     id: str
