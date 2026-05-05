@@ -2,6 +2,9 @@
 
 from fastapi import Depends
 
+from src.application.interfaces.services.users_service_interface import ICreateUserService
+from src.infrastructure.services.users.create_users_service import CreateUserService
+from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.infrastructure.services.movie.delete_movie import DeleteMovie
 from src.infrastructure.services.movie.patch_movie import PatchMovie
 from src.infrastructure.services.movie.update_movie import UpdateEntireMovie
@@ -23,7 +26,11 @@ def IMoviesExternalServiceDependency():
 def IMoviesRepositoryDependency(db: Session = Depends(get_db)):
     # Nhận db từ Depends(get_db) và nhét vào Repository
     return MoviesRepositories(db=db)
-# Bơm 
+
+def IUserRepositoryDependency(db: Session = Depends(get_db)):
+    return UserRepository(db=db)
+
+# Bơm phụ thuộc
 def IGetListMoviesServiceDependency(
     movie_repository: IMoviesRepository = Depends(IMoviesRepositoryDependency),
     movie_external_service: IMovieApiGateway = Depends(IMoviesExternalServiceDependency) 
@@ -70,4 +77,12 @@ def IDeleteMovieDependency(
 )-> IDeleteMovie:
     return DeleteMovie(
         movie_repository=movie_repository
+    )
+
+
+def ICreateUserDependency(
+    user_repository: IUserRepositoryDependency = Depends(IUserRepositoryDependency)
+) -> ICreateUserService:
+    return CreateUserService(
+        user_repository=user_repository
     )

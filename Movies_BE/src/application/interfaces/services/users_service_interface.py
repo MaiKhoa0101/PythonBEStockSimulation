@@ -1,18 +1,24 @@
-from typing import Protocol, Any
+from typing import Protocol
+
+from src.presentation.dtos.user_dto import UserCreateDTO, UserResponseDTO, UserUpdateDTO
 
 
-class IUserService(Protocol):
-    async def create_user(user_data: Any) -> Any:
+class ICreateUserService(Protocol):
+    async def create_user(user_data: UserCreateDTO) -> UserResponseDTO:
         ...
 
-    async def get_user_by_id(user_id: str) -> Any:
+class IGetUserById(Protocol):
+    async def get_user_by_id(user_id: str) -> UserResponseDTO:
         ...
 
-    async def get_user_by_email(email: str) -> Any:
+class IGetUserByEmail(Protocol):
+    async def get_user_by_email(email: str) -> UserResponseDTO:
         ...
 
-    async def update_user(user_id: str, user_data: Any) -> Any:
+class IUpdateUser(Protocol):
+    async def update_user(user_id: str, user_data: UserUpdateDTO) -> UserResponseDTO:
         ...
 
+class IDeleteUser(Protocol):
     async def delete_user(user_id: str) -> None:
         ...

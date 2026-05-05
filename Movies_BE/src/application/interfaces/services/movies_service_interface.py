@@ -1,9 +1,11 @@
 from typing import Protocol, Any
 
+from src.domain.entities.movies.movie import Movie
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO 
 
 class IGetListMoviesService(Protocol): 
-    async def fetch_movies_list() -> Any:
+    #ep kieu tra ve
+    async def fetch_movies_list() -> list[Movie]:
         ... 
 class IGetMoviesDetailByName(Protocol):
     async def fetch_movie_detail_by_name(name: str) -> Any:

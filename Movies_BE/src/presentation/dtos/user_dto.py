@@ -6,13 +6,21 @@ from datetime import datetime
 class UserBaseDTO(BaseModel):
     username: str
     email: str
-    phone_number: Optional[str] = None
-    full_name: Optional[str] = None
+    phone_number: str
+    full_name: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
 class UserCreateDTO(UserBaseDTO):
     password: str
+
+class UserUpdateDTO(UserBaseDTO):
+    email: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_verified: Optional[bool] = None
+    is_deleted: Optional[bool] = None
 
 class UserResponseDTO(UserBaseDTO):
     id: str

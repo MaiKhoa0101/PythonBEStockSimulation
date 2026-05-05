@@ -45,15 +45,17 @@
 --     updated_by VARCHAR(50)
 -- );
 
-use movie_system;
--- set SQL_SAFE_UPDATES =0;
--- delete from movieepisode
-select * from movie;
--- select * from episode;
 
--- select * from episode;
--- Thêm cột is_deleted vào bảng movie
--- ALTER TABLE movie ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+-- delete from user where email = 'maikhoa2015@gmail.com';
+select * from user;
 
--- Thêm cột is_deleted vào bảng episode (nếu bạn có làm cho episode)
--- ALTER TABLE episode ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+-- Thêm cột
+-- ALTER TABLE user ADD COLUMN username varchar(50) DEFAULT "",  
+-- ADD COLUMN full_name varchar(50) default "",  
+-- ADD COLUMN phone_number varchar(10) default "",  
+-- ADD COLUMN is_active boolean default true,
+-- ADD COLUMN is_verified boolean default false,
+-- ADD COLUMN is_deleted boolean default false;
+-- Alter table user ADD COLUMN phone_number varchar(15) default ""
+
+

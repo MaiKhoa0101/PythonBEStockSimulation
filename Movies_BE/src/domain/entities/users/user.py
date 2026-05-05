@@ -6,9 +6,11 @@ from datetime import datetime
 @dataclass
 class User:
     id: str
+    username: str
     email: str
     password: str
     full_name: str
+    phone_number: str
     is_active: bool = True
     is_verified: bool = False
     is_deleted: bool = False
