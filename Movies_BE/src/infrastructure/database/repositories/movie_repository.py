@@ -1,7 +1,6 @@
-import httpx
 from src.presentation.dtos.movie_dto import MovieCreateDTO
-from src.domain.entities.movie import Movie
-from src.infrastructure.database.models.movie_model import EpisodeModel, MovieModel
+from src.domain.entities.movies.movie import Movie
+from src.infrastructure.database.models.movies.movie_model import EpisodeModel, MovieModel
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
 from sqlalchemy.orm import Session
 

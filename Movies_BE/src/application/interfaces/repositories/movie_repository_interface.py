@@ -1,7 +1,7 @@
 
 from typing import Protocol
 
-from src.domain.entities.movie import Movie
+from src.domain.entities.movies.movie import Movie
 
 
 class IMoviesRepository(Protocol):

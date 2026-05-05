@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from src.presentation.controller.v1 import movies,users
 from src.infrastructure.database.session import Base, engine
-from src.infrastructure.database.models import *
 
 
 Base.metadata.create_all(bind=engine)
