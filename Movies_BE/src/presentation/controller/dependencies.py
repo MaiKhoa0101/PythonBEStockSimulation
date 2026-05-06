@@ -2,8 +2,11 @@
 
 from fastapi import Depends
 
-from src.application.interfaces.services.collection_service_interface import IGetCollectionService
-from src.infrastructure.services.favourite_list.get_favourite_list import GetCollectionService
+from src.infrastructure.services.movie_collection.add_movie_to_collection import AddMovieToCollection
+from src.infrastructure.services.movie_collection.create_movie_collection import CreateMovieCollection
+from src.infrastructure.services.movie_collection.create_movie_collection import CreateMovieCollection
+from src.infrastructure.services.movie_collection.get_favourite_list import GetCollectionService
+from src.application.interfaces.services.collection_service_interface import IAddMovieToCollectionService, ICreateCollectionService, IGetCollectionService
 from src.infrastructure.database.repositories.movie_collection_repository import CollectionRepository
 from src.infrastructure.services.users.login_user_service import LoginUser
 from src.application.interfaces.services.users_service_interface import ICreateUserService, ILoginUser
@@ -113,3 +116,16 @@ def IGetCollectionServiceDependency(
         collection_repository=collection_repository
     )
 
+def ICreateCollectionServiceDependency(
+    collection_repository: ICollectionRepositoryDependency = Depends(ICollectionRepositoryDependency)
+) -> ICreateCollectionService:
+    return CreateMovieCollection(
+        collection_repository=collection_repository
+    )
+
+def IAddMovieToCollectionServiceDependency(
+    collection_repository: ICollectionRepositoryDependency = Depends(ICollectionRepositoryDependency)
+) -> IAddMovieToCollectionService:
+    return AddMovieToCollection(
+        collection_repository=collection_repository
+    )

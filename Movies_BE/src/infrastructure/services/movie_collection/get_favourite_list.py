@@ -17,6 +17,4 @@ class GetCollectionService(IGetCollectionService):
         result =  self.collection_repository.get_collection(user_id)
         print("Vào được đây vowis ressult ", result)
 
-        if not result:
-            return None
         return result
