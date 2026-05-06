@@ -25,4 +25,4 @@ class UserModel(Base):
     updated_by = Column(String(50))
 
 
-    favourite_lists = relationship("FavouriteListModel", back_populates="user")
+    collections = relationship("CollectionModel", back_populates="user")

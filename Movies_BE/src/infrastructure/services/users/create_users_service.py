@@ -1,4 +1,5 @@
 
+from src.infrastructure.security.security import get_password_hash
 from src.application.interfaces.repositories.users_repository_interface import IUserRepository
 from src.domain.entities.users.user import User
 from src.presentation.dtos.user_dto import UserCreateDTO, UserResponseDTO, UserUpdateDTO
@@ -17,14 +18,14 @@ class CreateUserService(ICreateUserService):
 
         if not user_data.email or not user_data.password:
             return None
-        
+        hashed_password = get_password_hash(user_data.password)
         user_entity = User(
             id="",  
             username=user_data.username,
             email=user_data.email,
             full_name=user_data.full_name,
             phone_number=user_data.phone_number,
-            password=user_data.password
+            password=hashed_password
         )
 
         result: User = await self.user_repository.create_user(user_entity)

@@ -50,11 +50,15 @@ class UserRepository(IUserRepository):
         if user:
             return User(
                 id=user.id,
+                username=user.username,
                 email=user.email,
+                phone_number=user.phone_number,
                 password=user.password,
                 full_name=user.full_name,
                 is_active=user.is_active,
-                is_verified=user.is_verified
+                is_verified=user.is_verified,
+                created_at=user.created_at,
+                updated_at=user.updated_at
             )
         return None
     
@@ -72,14 +76,20 @@ class UserRepository(IUserRepository):
         self.db.commit()
         self.db.refresh(user)
         
-        return User(
-            id=user.id,
-            email=user.email,
-            password=user.password,
-            full_name=user.full_name,
-            is_active=user.is_active,
-            is_verified=user.is_verified
-        )
+        if user:
+            return User(
+                id=user.id,
+                username=user.username,
+                email=user.email,
+                phone_number=user.phone_number,
+                password=user.password,
+                full_name=user.full_name,
+                is_active=user.is_active,
+                is_verified=user.is_verified,
+                created_at=user.created_at,
+                updated_at=user.updated_at
+            )
+        return None
     
     def delete_user(self, user_id: str) -> None:
         user = self.db.query(UserModel).filter(UserModel.id == user_id).first()

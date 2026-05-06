@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from src.presentation.dtos.user_dto import UserCreateDTO, UserResponseDTO, UserUpdateDTO
+from src.presentation.dtos.user_dto import LoginDTO, ResponseLoginDTO, UserCreateDTO, UserResponseDTO, UserUpdateDTO
 
 
 class ICreateUserService(Protocol):
@@ -21,4 +21,8 @@ class IUpdateUser(Protocol):
 
 class IDeleteUser(Protocol):
     async def delete_user(user_id: str) -> None:
+        ...
+
+class ILoginUser(Protocol):
+    async def login(login_data: LoginDTO) -> ResponseLoginDTO:
         ...

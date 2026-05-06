@@ -16,3 +16,4 @@ class IUserRepository(Protocol):
 
     async def delete_user(user_id: str) -> None:
         ...
+    

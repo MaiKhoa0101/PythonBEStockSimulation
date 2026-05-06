@@ -4,6 +4,7 @@ from src.infrastructure.database.session import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
+
 class MovieModel(Base):
     __tablename__ = "movie"
 
@@ -20,8 +21,8 @@ class MovieModel(Base):
     updated_by = Column(String(50))
         
     episodes = relationship("EpisodeModel", back_populates="movie")
-    favourited_by = relationship("FavouriteListModel", back_populates="movie")
-
+    
+    collection_items = relationship("CollectionItemModel", back_populates="movie", cascade="all, delete-orphan")
 
 class EpisodeModel(Base):
     __tablename__ = "episode"

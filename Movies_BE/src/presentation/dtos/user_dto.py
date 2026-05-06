@@ -27,3 +27,11 @@ class UserResponseDTO(UserBaseDTO):
 
     # Quan trọng: Giúp Pydantic tự động đọc dữ liệu từ SQLAlchemy Model hoặc Entity
     model_config = ConfigDict(from_attributes=True)
+
+
+class LoginDTO(BaseModel):
+    email: str = None
+    password: str = None
+
+class ResponseLoginDTO(BaseModel):
+    token: str

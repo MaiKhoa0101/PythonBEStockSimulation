@@ -2,7 +2,11 @@
 
 from fastapi import Depends
 
-from src.application.interfaces.services.users_service_interface import ICreateUserService
+from src.application.interfaces.services.collection_service_interface import IGetCollectionService
+from src.infrastructure.services.favourite_list.get_favourite_list import GetCollectionService
+from src.infrastructure.database.repositories.movie_collection_repository import CollectionRepository
+from src.infrastructure.services.users.login_user_service import LoginUser
+from src.application.interfaces.services.users_service_interface import ICreateUserService, ILoginUser
 from src.infrastructure.services.users.create_users_service import CreateUserService
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.infrastructure.services.movie.delete_movie import DeleteMovie
@@ -30,6 +34,10 @@ def IMoviesRepositoryDependency(db: Session = Depends(get_db)):
 def IUserRepositoryDependency(db: Session = Depends(get_db)):
     return UserRepository(db=db)
 
+def ICollectionRepositoryDependency(db: Session = Depends(get_db)):
+    return CollectionRepository(db=db)
+
+
 # Bơm phụ thuộc
 def IGetListMoviesServiceDependency(
     movie_repository: IMoviesRepository = Depends(IMoviesRepositoryDependency),
@@ -38,7 +46,7 @@ def IGetListMoviesServiceDependency(
     return GetListMovies(
         movie_repository=movie_repository,
         movie_external_service= movie_external_service
-        )
+    )
 
 def IGetMoviesDetailByNameDependency(
     movie_repository: IMoviesRepository = Depends(IMoviesRepositoryDependency)
@@ -80,9 +88,28 @@ def IDeleteMovieDependency(
     )
 
 
+#========== User Service Dependencies ==========
+
 def ICreateUserDependency(
     user_repository: IUserRepositoryDependency = Depends(IUserRepositoryDependency)
 ) -> ICreateUserService:
     return CreateUserService(
         user_repository=user_repository
     )
+
+def ILoginUserDependency(
+    user_repository: IUserRepositoryDependency = Depends(IUserRepositoryDependency)
+) -> ILoginUser:
+    return LoginUser(
+        user_repository= user_repository
+    )
+
+#========== Collection Service Dependencies ==========
+
+def IGetCollectionServiceDependency(
+    collection_repository: ICollectionRepositoryDependency = Depends(ICollectionRepositoryDependency)
+) -> IGetCollectionService:
+    return GetCollectionService(
+        collection_repository=collection_repository
+    )
+
