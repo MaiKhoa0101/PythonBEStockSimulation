@@ -7,18 +7,16 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 # Cấu hình CORS
-origins = [
-    "http://localhost:3000",      # Cho phép React/Vue Frontend (Web)
-    "http://localhost:5173",      # Cho phép Vite
-    "*"                           # Hoặc dùng "*" để cho phép tất cả (chỉ nên dùng khi dev)
+origins = [   
+    "*"                          
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"], # Cho phép tất cả GET, POST, PUT, DELETE...
-    allow_headers=["*"], # Cho phép gửi mọi loại Header (đặc biệt là header Authorization chứa Token)
+    allow_methods=["*"], # Cho phép tất cả get post put delete
+    allow_headers=["*"], # Cho phép gửi mọi loại header
 )
 
 # Gắn router vào ứng dụng chính

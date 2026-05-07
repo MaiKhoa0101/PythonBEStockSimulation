@@ -11,7 +11,7 @@ class CreateMovieCollection(ICreateCollectionService):
 
     async def create_collection(self, user_id: str, name: str):
         # Gọi Repository để tạo list mới
-        result: CollectionEntity = self.collection_repository.create_movie_collection(user_id=user_id, name=name)
+        result: CollectionEntity =  await self.collection_repository.create_movie_collection(user_id=user_id, name=name)
         
         if result:
             return {

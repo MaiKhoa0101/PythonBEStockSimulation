@@ -11,7 +11,7 @@ class CollectionRepository(ICollectionRepository):
     def __init__(self, db:Session):
         self.db = db
 
-    def get_collection(self, user_id: str):
+    async def get_collection(self, user_id: str):
         # 1. Truy vấn dữ liệu từ DB, đính kèm luôn các Items và thông tin Movie
         db_collections = self.db.query(CollectionModel).filter(
             CollectionModel.user_id == user_id
@@ -48,7 +48,7 @@ class CollectionRepository(ICollectionRepository):
 
         return result
 
-    def create_movie_collection(self, user_id: str, name: str) -> CollectionEntity:
+    async def create_movie_collection(self, user_id: str, name: str) -> CollectionEntity:
         new_collection = CollectionModel(
             user_id=user_id,
             name=name
@@ -71,7 +71,7 @@ class CollectionRepository(ICollectionRepository):
             self.db.rollback() # Quay xe nếu có lỗi
             raise e
 
-    def add_to_movie_collection(self, collection_id: str, movie_id: str) -> bool:
+    async def add_to_movie_collection(self, collection_id: str, movie_id: str) -> bool:
         new_item = CollectionItemModel(
             collection_id=collection_id,
             movie_id=movie_id
@@ -85,7 +85,7 @@ class CollectionRepository(ICollectionRepository):
             self.db.rollback() 
             return False
 
-    def remove_from_movie_collection(self, collection_id: str, movie_id: str) -> bool:
+    async def remove_from_movie_collection(self, collection_id: str, movie_id: str) -> bool:
         # Tìm xem cái dòng đó có tồn tại không
         item_to_delete = self.db.query(CollectionItemModel).filter(
             CollectionItemModel.collection_id == collection_id,

@@ -13,8 +13,8 @@ class GetCollectionService(IGetCollectionService):
     ):
         self.collection_repository = collection_repository
 
-    def get_all_collections(self, user_id: int):
-        result =  self.collection_repository.get_collection(user_id)
+    async def get_all_collections(self, user_id: int):
+        result =  await self.collection_repository.get_collection(user_id)
         print("Vào được đây vowis ressult ", result)
 
         return result
