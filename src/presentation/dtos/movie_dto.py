@@ -5,11 +5,11 @@ from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
-from presentation.dtos.actors_dto import ActorDTO
-from presentation.dtos.categories_dto import CategoryDTO
-from presentation.dtos.country_dto import CountryDTO
-from presentation.dtos.directors_dto import DirectorDTO
-from presentation.dtos.imdb_dto import MovieExternalIdsCreateDTO, MovieExternalIdsResponseDTO
+from src.presentation.dtos.actors_dto import ActorDTO
+from src.presentation.dtos.categories_dto import CategoryDTO
+from src.presentation.dtos.country_dto import CountryDTO
+from src.presentation.dtos.directors_dto import DirectorDTO
+from src.presentation.dtos.imdb_dto import MovieExternalIdsCreateDTO, MovieExternalIdsResponseDTO
 
 
 class EpisodeBaseDTO(BaseModel):

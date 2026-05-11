@@ -6,12 +6,11 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 from datetime import datetime
 
-from domain.entities.actors.actor import Actor
-from domain.entities.categories.categories import Category
-from domain.entities.country.country import Country
-from domain.entities.directors.director import Director
-from domain.entities.imdb.imdb import MovieExternalIds
-
+from src.domain.entities.actors.actor import Actor
+from src.domain.entities.categories.categories import Category
+from src.domain.entities.country.country import Country
+from src.domain.entities.directors.director import Director
+from src.domain.entities.imdb.imdb import MovieExternalIds
 
 
 @dataclass
