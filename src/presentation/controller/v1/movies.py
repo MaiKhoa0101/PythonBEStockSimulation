@@ -48,7 +48,6 @@ async def api_get_movie_detail_by_id(
     id: str,
     getMovieByIdService: IGetMoviesDetailById = Depends(IGetMoviesDetailByIdDependency)
 ):
-    # Gọi hàm execute của Query
     result = await getMovieByIdService.fetch_movie_detail_by_id(id)
     if result:
         return{

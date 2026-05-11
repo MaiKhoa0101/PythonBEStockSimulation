@@ -2,7 +2,7 @@ import uuid
 
 from sqlalchemy import Column, Float, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
-from infrastructure.database.session import Base
+from src.infrastructure.database.session import Base
 
 
 class MovieExternalIdsModel(Base):

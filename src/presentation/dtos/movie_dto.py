@@ -90,7 +90,6 @@ class MoviePatchDTO(BaseModel):
     slug_name: Optional[str] = None
     origin_name: Optional[str] = None
     is_series: Optional[bool] = None
-    type: Optional[str] = None
     status: Optional[str] = None
     description: Optional[str] = None
     poster_url: Optional[str] = None

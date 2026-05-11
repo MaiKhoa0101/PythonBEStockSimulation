@@ -2,8 +2,8 @@ import uuid
 
 from sqlalchemy import Column, ForeignKey, String, Table
 from sqlalchemy.orm import relationship
-from infrastructure.database.session import Base
-from src.infrastructure.database.models.associations import movie_category_association
+from src.infrastructure.database.session import Base
+from src.infrastructure.database.models.associations.associations import movie_category_association
 
 class CategoryModel(Base):
     __tablename__ = "category"

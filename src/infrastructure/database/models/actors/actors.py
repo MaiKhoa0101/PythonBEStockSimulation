@@ -2,9 +2,8 @@ import uuid
 
 from sqlalchemy import Column, ForeignKey, String, Table
 from sqlalchemy.orm import relationship
-from infrastructure.database.session import Base
-from src.infrastructure.database.models.associations import movie_actor_association
-
+from src.infrastructure.database.session import Base
+from src.infrastructure.database.models.associations.associations import movie_actor_association
 
 class ActorModel(Base):
     __tablename__ = "actor"

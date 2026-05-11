@@ -21,6 +21,7 @@ app.add_middleware(
 
 # Gắn router vào ứng dụng chính
 app.include_router(movies.router, prefix="/api/v1/movies")
+app.include_router(movies.router, prefix="/api/v2/movies")
 app.include_router(users.router, prefix="/api/v1/users")
 app.include_router(collection.router, prefix="/api/v1/collection")
 
