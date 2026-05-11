@@ -6,6 +6,12 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 from datetime import datetime
 
+from domain.entities.actors.actor import Actor
+from domain.entities.categories.categories import Category
+from domain.entities.country.country import Country
+from domain.entities.directors.director import Director
+from domain.entities.imdb.imdb import MovieExternalIds
+
 
 
 @dataclass
@@ -32,8 +38,6 @@ class Movie:
     origin_name: Optional[str] = None
     is_series: bool = False
 
-    # Loại phim: "single" | "series"
-    type: Optional[str] = None
     # Trạng thái: "completed" | "ongoing" | ...
     status: Optional[str] = None
 
