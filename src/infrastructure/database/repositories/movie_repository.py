@@ -1,8 +1,10 @@
+from src.infrastructure.database.utils.mapping import entity_to_model
 from src.presentation.dtos.movie_dto import MovieCreateDTO
 from src.domain.entities.movies.movie import Movie
 from src.infrastructure.database.models.movies.movie_model import EpisodeModel, MovieModel
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import inspect as sa_inspect
 
 class MoviesRepositories(IMoviesRepository):
     def __init__(self, db: Session): 
@@ -32,7 +34,9 @@ class MoviesRepositories(IMoviesRepository):
     
     async def fetch_movie_detail_by_name(self, name: str):
         
-        db_movie = self.db.query(MovieModel).filter(
+        db_movie = self.db.query(MovieModel).options(
+            joinedload(MovieModel.episodes)
+        ).filter(
             MovieModel.slug_name == name,
             MovieModel.is_deleted == False
         ).first()
@@ -40,7 +44,9 @@ class MoviesRepositories(IMoviesRepository):
     
     async def fetch_movie_detail_by_id(self, id: str):
         
-        db_movie = self.db.query(MovieModel).filter(
+        db_movie = self.db.query(MovieModel).options(
+            joinedload(MovieModel.episodes)
+        ).filter(
             MovieModel.id == id,
             MovieModel.is_deleted == False
         ).first()
@@ -50,22 +56,16 @@ class MoviesRepositories(IMoviesRepository):
         print(f"Gọi create repo với {movie_entity}")
         
         # 1. Map từ Entity sang Database Model
-        db_movie = MovieModel(
-            name=movie_entity.name,
-            slug_name=movie_entity.slug_name,
-            is_series=movie_entity.is_series,
-            poster_url= movie_entity.poster_url,
-            description=movie_entity.description
+        db_movie = entity_to_model(
+            movie_entity, 
+            MovieModel,
+            exclude={"id", "created_at", "updated_at", "episodes", "actors", "directors", "categories", "countries", "external_ids"}
         )
 
         for ep_entity in movie_entity.episodes:
-            db_episode = EpisodeModel(
-                name_episode=ep_entity.name_episode,
-                link_video=ep_entity.link_video,
-                description=ep_entity.description
-            )
+            db_episode = entity_to_model(ep_entity, EpisodeModel, exclude={"id", "id_movie", "created_at", "updated_at"})
             db_movie.episodes.append(db_episode)
-        
+            
         # 2. Lưu xuống MySQL
         self.db.add(db_movie)
         self.db.commit()
@@ -79,37 +79,35 @@ class MoviesRepositories(IMoviesRepository):
         # 4. Trả Entity hoàn chỉnh ngược lên cho Service
         return movie_entity
 
-    async def update_entire_movie(
-        self,
-        movie_entity:Movie
-    ):     
+    async def update_entire_movie(self, movie_entity: Movie):
         db_movie = self.db.query(MovieModel).filter(
             MovieModel.id == movie_entity.id,
             MovieModel.is_deleted == False
         ).first()
         if not db_movie:
             return None
+
+        # ✅ Đúng - cập nhật trực tiếp lên object đang được session track
+        valid_columns = {col.key for col in sa_inspect(MovieModel).mapper.column_attrs}
+        exclude = {"id", "created_at", "updated_at", "episodes", "actors", "directors", "categories", "countries", "external_ids"}
         
-        db_movie.name = movie_entity.name
-        db_movie.slug_name = movie_entity.slug_name
-        db_movie.description = movie_entity.description
-        db_movie.is_series = movie_entity.is_series
-        db_movie.episodes = []
-        for ep_entity in movie_entity.episodes:
-            db_episode = EpisodeModel(
-                name_episode = ep_entity.name_episode,
-                description = ep_entity.description,
-                link_video = ep_entity.link_video
-            )
-            db_movie.episodes.append(db_episode)
-        
+        from dataclasses import asdict
+        for k, v in asdict(movie_entity).items():
+            if k in valid_columns and k not in exclude:
+                setattr(db_movie, k, v)
+
+        db_movie.episodes = [
+            entity_to_model(ep, EpisodeModel, exclude={"id", "id_movie", "created_at", "updated_at"})
+            for ep in movie_entity.episodes
+        ]
+
         self.db.commit()
         self.db.refresh(db_movie)
 
         movie_entity.id = db_movie.id
         movie_entity.created_at = db_movie.created_at
         movie_entity.updated_at = db_movie.updated_at
-        
+
         return movie_entity
     
     async def patch_movie(self, movie_entity):
