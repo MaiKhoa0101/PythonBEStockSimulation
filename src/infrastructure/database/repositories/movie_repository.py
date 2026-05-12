@@ -33,8 +33,11 @@ class MoviesRepositories(IMoviesRepository):
         return result
     
     async def fetch_movie_detail_by_name(self, name: str):
-        
         db_movie = self.db.query(MovieModel).options(
+            joinedload(MovieModel.actors),
+            joinedload(MovieModel.directors),
+            joinedload(MovieModel.countries),
+            joinedload(MovieModel.categories),
             joinedload(MovieModel.episodes)
         ).filter(
             MovieModel.slug_name == name,
@@ -43,8 +46,11 @@ class MoviesRepositories(IMoviesRepository):
         return db_movie
     
     async def fetch_movie_detail_by_id(self, id: str):
-        
         db_movie = self.db.query(MovieModel).options(
+            joinedload(MovieModel.actors),
+            joinedload(MovieModel.directors),
+            joinedload(MovieModel.countries),
+            joinedload(MovieModel.categories),
             joinedload(MovieModel.episodes)
         ).filter(
             MovieModel.id == id,

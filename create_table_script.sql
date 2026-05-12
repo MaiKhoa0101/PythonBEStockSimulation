@@ -80,11 +80,3 @@ USE movie_system;
 
 select * from movie;
 
--- Thêm cột
--- ALTER TABLE user ADD COLUMN username varchar(50) DEFAULT "",  
--- ADD COLUMN full_name varchar(50) default "",  
--- ADD COLUMN phone_number varchar(10) default "",  
--- ADD COLUMN is_active boolean default true,
--- ADD COLUMN is_verified boolean default false,
--- ADD COLUMN is_deleted boolean default false;
--- Alter table user ADD COLUMN phone_number varchar(15) default ""
