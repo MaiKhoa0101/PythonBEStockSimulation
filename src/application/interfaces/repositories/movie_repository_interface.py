@@ -1,6 +1,8 @@
 
 from typing import Protocol
 
+from fastapi import UploadFile
+
 from src.domain.entities.movies.movie import Movie
 
 
@@ -48,5 +50,10 @@ class IMoviesRepository(Protocol):
         id: str
     ):
         ...
-
+        
+    async def upload_episode(
+        local_path: str,
+        episode_id:str
+    ):
+        ...
     

@@ -93,7 +93,6 @@ class MoviesRepositories(IMoviesRepository):
         if not db_movie:
             return None
 
-        # ✅ Đúng - cập nhật trực tiếp lên object đang được session track
         valid_columns = {col.key for col in sa_inspect(MovieModel).mapper.column_attrs}
         exclude = {"id", "created_at", "updated_at", "episodes", "actors", "directors", "categories", "countries", "external_ids"}
         
@@ -123,27 +122,27 @@ class MoviesRepositories(IMoviesRepository):
         ).first()
         if not db_movie:
             return None
-        
-        if movie_entity.description is not None:
-            db_movie.description = movie_entity.description
-        if movie_entity.name is not None:
-            db_movie.name = movie_entity.name
-        if movie_entity.slug_name is not None:
-            db_movie.slug_name= movie_entity.slug_name
-        if movie_entity.is_series is not None:
-            db_movie.is_series = movie_entity.is_series
-        if movie_entity.episodes != []:
-            self.upsert_episode(movie_entity)
+        valid_columns = {col.key for col in sa_inspect(MovieModel).mapper.column_attrs}
+        exclude = {"id", "created_at", "updated_at"}
+
+        from dataclasses import asdict
+        for k, v in asdict(movie_entity).items():
+            if k in valid_columns and k not in exclude and v is not None:
+                setattr(db_movie, k, v)
+
+        if movie_entity.episodes:
+            await self.upsert_episode(movie_entity)
+
         self.db.commit()
         self.db.refresh(db_movie)
 
         movie_entity.id = db_movie.id
         movie_entity.created_at = db_movie.created_at
         movie_entity.updated_at = db_movie.updated_at
-    
-        return movie_entity
 
+        return movie_entity
     
+
     async def upsert_episode(self, movie_entity):
         db_movie = self.db.query(MovieModel).filter(
             MovieModel.id == movie_entity.id,
@@ -160,22 +159,35 @@ class MoviesRepositories(IMoviesRepository):
                 # có thì sửa lên episode gốc
                 # không thì tạo mới
                 for db_ep in db_movie.episodes:
-                    if (episode.id and episode.id == db_ep.id) or (episode.name and episode.name == db_ep.name):
+                    if (episode.id and episode.id == db_ep.id) or (episode.slug and episode.slug == db_ep.slug):
                         existed_ep = db_ep
-                    break
+                        break  # ← đúng chỗ
                 
                 
                 if existed_ep:
-                    if episode.name:
-                        existed_ep.name= episode.name
+                    if episode.name_episode:
+                        existed_ep.name_episode = episode.name_episode
+                    if episode.slug:
+                        existed_ep.slug = episode.slug
+                    if episode.link_embed:
+                        existed_ep.link_embed = episode.link_embed
+                    if episode.link_m3u8:
+                        existed_ep.link_m3u8 = episode.link_m3u8
+                    if episode.server_name:
+                        existed_ep.server_name = episode.server_name
                     if episode.description:
                         existed_ep.description = episode.description
-                    if episode.link_video:
-                        existed_ep.link_video = episode.link_video
                 else:
-                    existed_ep = episode
-                
-                db_movie.episodes.append(existed_ep)
+                    existed_ep = EpisodeModel(
+                        name_episode=episode.name_episode,
+                        slug=episode.slug,
+                        filename=episode.filename,
+                        link_embed=episode.link_embed,
+                        link_m3u8=episode.link_m3u8,
+                        server_name=episode.server_name,
+                        description=episode.description,
+                    )
+                    db_movie.episodes.append(existed_ep)
         self.db.commit()
 
     async def delete_movie_by_id(self, id):
@@ -193,3 +205,18 @@ class MoviesRepositories(IMoviesRepository):
 
         return True
 
+    async def upload_episode(
+        self,
+        episode_id:str,
+        path:str
+    ):
+        try:
+            episode= self.db.query(EpisodeModel).filter(EpisodeModel.episode_id==episode_id).first()
+            if not episode:
+                return False
+            episode.link_video = path
+            self.db.commit()
+            return True
+        except any as e:
+            self.db.rollback()
+            raise Exception(f"Lỗi Database: {str(e)}")

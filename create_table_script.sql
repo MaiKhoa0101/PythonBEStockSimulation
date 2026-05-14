@@ -76,7 +76,6 @@ USE movie_system;
 -- drop table movie;
 -- drop table episode;
 -- drop table user;
--- 1. TẠO BẢNG USER TRƯỚC (Vì nó không phụ thuộc vào ai)
+-- 1. TẠO BẢNG USER TRƯỚC (Vì nó không phụ thuộc vào ai)actordirectorcountrycountry
 
-select * from movie;
-
+select * from movie

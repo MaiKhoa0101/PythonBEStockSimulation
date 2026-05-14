@@ -1,5 +1,7 @@
 from typing import Protocol, Any
 
+from fastapi import UploadFile
+
 from src.domain.entities.movies.movie import Movie
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO 
 
@@ -29,4 +31,8 @@ class IPatchMovie(Protocol):
 
 class IDeleteMovie(Protocol):
     async def delete_movie_by_id(id:str):
+        ...
+
+class IUploadEpisode(Protocol):
+    async def upload_episode(episodeId:str, file: UploadFile):
         ...

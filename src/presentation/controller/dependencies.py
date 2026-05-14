@@ -2,6 +2,7 @@
 
 from fastapi import Depends
 
+from src.infrastructure.services.movie.upload_episode import UploadEpisode
 from src.infrastructure.services.movie_collection.add_movie_to_collection import AddMovieToCollection
 from src.infrastructure.services.movie_collection.create_movie_collection import CreateMovieCollection
 from src.infrastructure.services.movie_collection.create_movie_collection import CreateMovieCollection
@@ -21,7 +22,7 @@ from src.infrastructure.external_services.movie_api_gateway import MovieApiGatew
 from src.infrastructure.services.movie.get_movie_by_id import GetMoviesDetailById
 from src.infrastructure.services.movie.get_movie_by_name import GetMoviesDetailByName
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
-from src.application.interfaces.services.movies_service_interface import ICreateMovie, IDeleteMovie, IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, IPatchMovie, IUpdateEntireMovie
+from src.application.interfaces.services.movies_service_interface import ICreateMovie, IDeleteMovie, IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, IPatchMovie, IUpdateEntireMovie, IUploadEpisode
 from src.infrastructure.database.repositories.movie_repository import MoviesRepositories
 from src.infrastructure.services.movie.get_movie_list import GetListMovies
 from sqlalchemy.orm import Session
@@ -91,6 +92,12 @@ def IDeleteMovieDependency(
     )
 
 
+def IUploadEpisodeServiceDepedency(
+    movie_repository: IMoviesRepository = Depends(IMoviesRepositoryDependency)
+)-> IUploadEpisode:
+    return UploadEpisode(
+        movie_repository=movie_repository
+    )
 #========== User Service Dependencies ==========
 
 def ICreateUserDependency(
@@ -128,4 +135,4 @@ def IAddMovieToCollectionServiceDependency(
 ) -> IAddMovieToCollectionService:
     return AddMovieToCollection(
         collection_repository=collection_repository
-    )
+)

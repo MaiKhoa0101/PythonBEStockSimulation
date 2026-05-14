@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from src.presentation.controller.v1 import movies,users,collection
 from src.infrastructure.database.session import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +19,8 @@ app.add_middleware(
     allow_methods=["*"], # Cho phép tất cả get post put delete
     allow_headers=["*"], # Cho phép gửi mọi loại header
 )
+
+app.mount("/media", StaticFiles(directory="media"), name="media")
 
 # Gắn router vào ứng dụng chính
 app.include_router(movies.router, prefix="/api/v1/movies")

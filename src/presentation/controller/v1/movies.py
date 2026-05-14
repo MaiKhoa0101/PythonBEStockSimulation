@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Depends, File, Path, UploadFile
 
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO
 from src.domain.entities.movies.movie import Movie
-from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie, IPatchMovie, IUpdateEntireMovie
-from src.presentation.controller.dependencies import ICreateMovieDependency, IDeleteMovieDependency, IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency, IPatchMovieDependency, IUpdateEntireMovieDependency
+from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie, IPatchMovie, IUpdateEntireMovie, IUploadEpisode
+from src.presentation.controller.dependencies import ICreateMovieDependency, IDeleteMovieDependency, IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency, IPatchMovieDependency, IUpdateEntireMovieDependency, IUploadEpisodeServiceDepedency
 
 router = APIRouter()
 
@@ -90,6 +90,15 @@ async def api_post_movie_into_favourite_list(
         "data":"Thành công"
     }
 
+@router.post("/add_episode")
+async def api_add_episode(
+    movie_slug:str,
+    episode_id: str,
+    file: UploadFile = File(...)
+):
+    return
+
+
 @router.put("/update/{id}")
 async def api_update_movie(
     id:str = Path(...),
@@ -147,3 +156,20 @@ async def api_delete_movie(
             "status":"Failed",
             "data":"Xóa không thành công"
         }
+    
+@router.post("/upload-video/{movie_slug}/{episode_id}")
+async def api_upload_movie_video(
+    movie_slug: str = Path(..., description="Slug của bộ phim"),
+    episode_id: str = Path(..., description="ID của tập phim"),
+    file: UploadFile = File(...),
+    # Inject Service vào Controller
+    upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
+):
+    # Ủy quyền toàn bộ công việc cho Service
+    result_path = await upload_service.upload_episode_video(movie_slug, episode_id, file)
+    
+    return {
+        "status": "Success",
+        "msg": "Upload và cập nhật Database thành công!",
+        "data": result_path
+    }
