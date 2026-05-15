@@ -23,6 +23,7 @@ class MoviesRepositories(IMoviesRepository):
                 is_series=db_movie.is_series,
                 description=db_movie.description,
                 poster_url=db_movie.poster_url,
+                thumb_url=db_movie.thumb_url,
                 
                 created_at=db_movie.created_at,
                 updated_at=db_movie.updated_at,
