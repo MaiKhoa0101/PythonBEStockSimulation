@@ -15,6 +15,11 @@ class IMoviesRepository(Protocol):
         name: str
     ):
         ...
+    async def fetch_movie_detail_by_name_no_auth(
+        self,
+        name: str
+    ):
+        ...
     async def fetch_movie_detail_by_id(
         self,
         id: str

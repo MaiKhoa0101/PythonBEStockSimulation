@@ -1,4 +1,4 @@
-from src.infrastructure.database.utils.mapping import entity_to_model
+from src.infrastructure.database.utils.mapping import entity_to_model, model_to_entity
 from src.presentation.dtos.movie_dto import MovieCreateDTO
 from src.domain.entities.movies.movie import Movie
 from src.infrastructure.database.models.movies.movie_model import EpisodeModel, MovieModel
@@ -46,6 +46,25 @@ class MoviesRepositories(IMoviesRepository):
         ).first()
         return db_movie
     
+    async def fetch_movie_detail_by_name(self, name: str):
+        db_movie = self.db.query(MovieModel).options(
+            joinedload(MovieModel.actors),
+            joinedload(MovieModel.directors),
+            joinedload(MovieModel.countries),
+            joinedload(MovieModel.categories),
+            joinedload(MovieModel.episodes)
+        ).filter(
+            MovieModel.slug_name == name,
+            MovieModel.is_deleted == False
+        ).first()
+
+        result = model_to_entity(
+            db_movie,
+            Movie
+        )
+        result.episodes = None
+        return result
+
     async def fetch_movie_detail_by_id(self, id: str):
         db_movie = self.db.query(MovieModel).options(
             joinedload(MovieModel.actors),

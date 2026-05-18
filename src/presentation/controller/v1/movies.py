@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, File, Path, UploadFile
 
+from src.infrastructure.security.security import get_current_user_id
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO
 from src.domain.entities.movies.movie import Movie
 from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie, IPatchMovie, IUpdateEntireMovie, IUploadEpisode
@@ -27,10 +28,12 @@ async def api_get_movie_list(
 @router.get("/name/{name}")
 async def api_get_movie_detail_by_name(
     name: str,
+    current_user_id: str = Depends(get_current_user_id),
     getMovieByNameService: IGetMoviesDetailByName = Depends(IGetMoviesDetailByNameDependency)
 ):
+    
     # Gọi hàm execute của Query
-    result = await getMovieByNameService.fetch_movie_detail_by_name(name)
+    result = await getMovieByNameService.fetch_movie_detail_by_name(name,current_user_id)
     if result:
         return{
             "status":"Success",

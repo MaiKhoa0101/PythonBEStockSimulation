@@ -39,7 +39,6 @@ def create_access_token(data: dict):
 
 
 
-# Khởi tạo công cụ hút Token từ Header: "Authorization: Bearer <token>"
 security = HTTPBearer()
 
 async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)):

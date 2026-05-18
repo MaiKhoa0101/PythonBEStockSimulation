@@ -10,7 +10,7 @@ class IGetListMoviesService(Protocol):
     async def fetch_movies_list() -> list[Movie]:
         ... 
 class IGetMoviesDetailByName(Protocol):
-    async def fetch_movie_detail_by_name(name: str) -> Any:
+    async def fetch_movie_detail_by_name(name: str, current_user_id:str) -> Any:
         ...
 
 class IGetMoviesDetailById(Protocol):

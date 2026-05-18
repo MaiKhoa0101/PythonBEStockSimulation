@@ -14,14 +14,12 @@ class LoginUser(ILoginUser):
         self.user_repository= user_repository
 
     async def login(self, login_data: LoginDTO):
-
         if not (login_data.email and login_data.password):
             return None
         
         result = self.user_repository.get_user_by_email(
             login_data.email
         )
-
         if not result:
             return None
         
@@ -35,5 +33,4 @@ class LoginUser(ILoginUser):
         response = ResponseLoginDTO(
             token = access_token
         )
-
         return response

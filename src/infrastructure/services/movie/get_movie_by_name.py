@@ -9,10 +9,15 @@ class GetMoviesDetailByName(IGetMoviesDetailByName):
     def __init__(self, movie_repository: IMoviesRepository):
         self.movie_repository = movie_repository
 
-    async def fetch_movie_detail_by_name(self, name: str):
+    async def fetch_movie_detail_by_name(self, name: str, current_user_id:str):
         #Xử lí name thành định dạng không dấu và gạch ngang như one piece -> one-piece
         formatted_name = slugify(name)
-        result = await self.movie_repository.fetch_movie_detail_by_name(formatted_name)
-        if not result: #ko thanh cong
+        if (current_user_id):
+            result = await self.movie_repository.fetch_movie_detail_by_name(formatted_name)
+        
+        else:
+            result = await self.movie_repository.fetch_movie_detail_by_name_no_auth(formatted_name)
+        
+        if not result: 
             return None
         return result

@@ -78,4 +78,4 @@ USE movie_system;
 -- drop table user;
 -- 1. TẠO BẢNG USER TRƯỚC (Vì nó không phụ thuộc vào ai)actordirectorcountrycountry
 
-select * from movie
+select * from user
