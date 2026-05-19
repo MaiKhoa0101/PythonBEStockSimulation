@@ -1,6 +1,6 @@
 from typing import Protocol, Any
 
-from fastapi import UploadFile
+from fastapi import BackgroundTasks, UploadFile
 
 from src.domain.entities.movies.movie import Movie
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO 
@@ -34,5 +34,8 @@ class IDeleteMovie(Protocol):
         ...
 
 class IUploadEpisode(Protocol):
-    async def upload_episode(episodeId:str, file: UploadFile):
+    async def upload_episode_video_into_local_system_path(movie_slug: str, episode_id: str, file: UploadFile) -> str:
+        ...
+
+    async def upload_episode_video_hls(movie_slug: str, episode_id: str, file: UploadFile, bg_tasks: BackgroundTasks) -> str:
         ...

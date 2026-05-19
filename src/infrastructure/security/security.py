@@ -8,7 +8,7 @@ import jwt
 #lay tu .env
 SECRET_KEY = os.getenv("SK_SECURITY", "default_secret_key")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 10
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
 
@@ -58,3 +58,4 @@ async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depend
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token đã hết hạn. Hãy đăng nhập lại.")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token bị làm giả.")
+    

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Path, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
 
 from src.infrastructure.security.security import get_current_user_id
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO
@@ -161,18 +161,33 @@ async def api_delete_movie(
         }
     
 @router.post("/upload-video/{movie_slug}/{episode_id}")
-async def api_upload_movie_video(
-    movie_slug: str = Path(..., description="Slug của bộ phim"),
-    episode_id: str = Path(..., description="ID của tập phim"),
+async def api_upload_episode_video_local(
+    movie_slug: str = Path(...),
+    episode_id: str = Path(...),
     file: UploadFile = File(...),
-    # Inject Service vào Controller
     upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
 ):
-    # Ủy quyền toàn bộ công việc cho Service
-    result_path = await upload_service.upload_episode_video(movie_slug, episode_id, file)
-    
+    result_path = await upload_service.upload_episode_video_into_local_system_path(
+        movie_slug, episode_id, file
+    )
     return {
         "status": "Success",
-        "msg": "Upload và cập nhật Database thành công!",
+        "data": result_path
+    }
+
+
+@router.post("/upload-video-hls/{movie_slug}/{episode_id}")
+async def api_upload_episode_video_hls(
+    bg_tasks: BackgroundTasks,
+    movie_slug: str = Path(...),
+    episode_id: str = Path(...),
+    file: UploadFile = File(...),
+    upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
+):
+    result_path = await upload_service.upload_episode_video_hls(
+        movie_slug, episode_id, file, bg_tasks
+    )
+    return {
+        "status": "Success",
         "data": result_path
     }

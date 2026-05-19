@@ -46,7 +46,7 @@ class MoviesRepositories(IMoviesRepository):
         ).first()
         return db_movie
     
-    async def fetch_movie_detail_by_name(self, name: str):
+    async def fetch_movie_detail_by_name_no_auth(self, name: str):
         db_movie = self.db.query(MovieModel).options(
             joinedload(MovieModel.actors),
             joinedload(MovieModel.directors),

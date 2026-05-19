@@ -28,7 +28,6 @@ class EpisodeModel(Base):
     server_name = Column(String(100))
     description = Column(String(500))
 
-    # Audit
     created_at = Column(DateTime, server_default=func.now())
     created_by = Column(String(50))
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
