@@ -16,17 +16,9 @@ class MoviesRepositories(IMoviesRepository):
             MovieModel.is_deleted == False
         ).all() 
         result = [
-            Movie(
-                id=db_movie.id,
-                name=db_movie.name,
-                slug_name=db_movie.slug_name,
-                is_series=db_movie.is_series,
-                description=db_movie.description,
-                poster_url=db_movie.poster_url,
-                thumb_url=db_movie.thumb_url,
-                
-                created_at=db_movie.created_at,
-                updated_at=db_movie.updated_at,
+            model_to_entity(
+                db_movie,
+                Movie
             )
             for db_movie in db_movies
         ]
@@ -224,19 +216,28 @@ class MoviesRepositories(IMoviesRepository):
         self.db.commit()
 
         return True
-
     async def upload_episode(
         self,
-        episode_id:str,
-        path:str
+        episode_id: str,
+        path: str,
+        is_hls: bool = False         
     ):
         try:
-            episode= self.db.query(EpisodeModel).filter(EpisodeModel.episode_id==episode_id).first()
+            episode = self.db.query(EpisodeModel).filter(
+                EpisodeModel.id == episode_id
+            ).first()
+
             if not episode:
                 return False
-            episode.link_video = path
+
+            if is_hls:
+                episode.link_m3u8 = path   
+            else:
+                episode.link_embed = path 
+
             self.db.commit()
             return True
-        except any as e:
+
+        except Exception as e:            
             self.db.rollback()
             raise Exception(f"Lỗi Database: {str(e)}")

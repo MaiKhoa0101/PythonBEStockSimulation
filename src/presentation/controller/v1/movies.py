@@ -159,35 +159,30 @@ async def api_delete_movie(
             "status":"Failed",
             "data":"Xóa không thành công"
         }
-    
-@router.post("/upload-video/{movie_slug}/{episode_id}")
+@router.post("/upload-video/{movie_slug}/{episode_slug}/{episode_id}")
 async def api_upload_episode_video_local(
     movie_slug: str = Path(...),
+    episode_slug: str = Path(...),
     episode_id: str = Path(...),
     file: UploadFile = File(...),
     upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
 ):
     result_path = await upload_service.upload_episode_video_into_local_system_path(
-        movie_slug, episode_id, file
+        movie_slug, episode_slug, episode_id, file
     )
-    return {
-        "status": "Success",
-        "data": result_path
-    }
+    return {"status": "Success", "data": result_path}
 
 
-@router.post("/upload-video-hls/{movie_slug}/{episode_id}")
+@router.post("/upload-video-hls/{movie_slug}/{episode_slug}/{episode_id}")
 async def api_upload_episode_video_hls(
     bg_tasks: BackgroundTasks,
     movie_slug: str = Path(...),
+    episode_slug: str = Path(...),
     episode_id: str = Path(...),
     file: UploadFile = File(...),
     upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
 ):
     result_path = await upload_service.upload_episode_video_hls(
-        movie_slug, episode_id, file, bg_tasks
+        movie_slug, episode_slug, episode_id, file, bg_tasks
     )
-    return {
-        "status": "Success",
-        "data": result_path
-    }
+    return {"status": "Success", "data": result_path}
