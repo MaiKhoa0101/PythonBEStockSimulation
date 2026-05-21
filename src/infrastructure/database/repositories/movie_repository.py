@@ -13,7 +13,6 @@ class MoviesRepositories(IMoviesRepository):
     def __init__(self, db: Session): 
         self.db = db
     
-    
     async def fetch_movies_list(self):
         db_movies = self.db.query(MovieModel).filter(
             MovieModel.is_deleted == False

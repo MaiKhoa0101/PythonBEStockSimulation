@@ -18,6 +18,8 @@ class UserModel(Base):
     is_verified = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
 
+    premium_until = Column(DateTime, nullable=True)
+
     # Audit Fields
     created_at = Column(DateTime, server_default=func.now())
     created_by = Column(String(50))
@@ -26,3 +28,4 @@ class UserModel(Base):
 
 
     collections = relationship("CollectionModel", back_populates="user")
+    transactions = relationship("TransactionModel", back_populates="user")

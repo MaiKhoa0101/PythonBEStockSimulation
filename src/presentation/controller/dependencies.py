@@ -2,6 +2,9 @@
 
 from fastapi import Depends
 
+from src.infrastructure.services.subscription.subscription_service import SubscriptionService
+from src.application.interfaces.services.subscription_service import ISubscriptionService
+from src.infrastructure.database.repositories.subscription_repository import SubscriptionRepository
 from src.infrastructure.services.movie.upload_episode import UploadEpisode
 from src.infrastructure.services.movie_collection.add_movie_to_collection import AddMovieToCollection
 from src.infrastructure.services.movie_collection.create_movie_collection import CreateMovieCollection
@@ -41,6 +44,8 @@ def IUserRepositoryDependency(db: Session = Depends(get_db)):
 def ICollectionRepositoryDependency(db: Session = Depends(get_db)):
     return CollectionRepository(db=db)
 
+def ISubscriptionRepositoryDependency(db:Session = Depends(get_db)):
+    return SubscriptionRepository(db=db)
 
 # Bơm phụ thuộc
 def IGetListMoviesServiceDependency(
@@ -136,3 +141,11 @@ def IAddMovieToCollectionServiceDependency(
     return AddMovieToCollection(
         collection_repository=collection_repository
 )
+
+
+def ISubscriptionServiceDependency(
+    subscription_repository: ISubscriptionRepositoryDependency= Depends(ISubscriptionRepositoryDependency)
+)-> ISubscriptionService:
+    return SubscriptionService(
+        subscription_repo=subscription_repository
+    )

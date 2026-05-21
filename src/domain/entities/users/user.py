@@ -14,8 +14,7 @@ class User:
     is_active: bool = True
     is_verified: bool = False
     is_deleted: bool = False
-
-    # Các trường Audit có thể để trống (None) khi mới tạo
+    premium_until: str = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

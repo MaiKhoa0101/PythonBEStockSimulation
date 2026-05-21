@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from src.presentation.controller.v1 import movies,users,collection
+from src.presentation.controller.v1 import subscription, movies,users,collection
 from src.infrastructure.database.session import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,11 +22,11 @@ app.add_middleware(
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
 
-# Gắn router vào ứng dụng chính
 app.include_router(movies.router, prefix="/api/v1/movies")
 app.include_router(movies.router, prefix="/api/v2/movies")
 app.include_router(users.router, prefix="/api/v1/users")
 app.include_router(collection.router, prefix="/api/v1/collection")
+app.include_router(subscription.router, prefix="/api/v1/subscription")
 
 @app.get("/")
 def root():

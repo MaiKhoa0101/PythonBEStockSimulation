@@ -70,12 +70,21 @@ USE movie_system;
 --     updated_by VARCHAR(50)
 -- );
 
+-- CREATE TABLE `transactions` (
+--     `id` VARCHAR(50) PRIMARY KEY DEFAULT(UUID()),
+--     `user_id` VARCHAR(50) NOT NULL,
+--     `package_id` VARCHAR(50) NOT NULL,
+--     `amount` INT NOT NULL,
+--     `status` VARCHAR(50) DEFAULT 'PENDING',
+--     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+--     
+--     -- Khai báo Khóa ngoại (Đảm bảo bảng users có chữ 's' hoặc sửa lại cho đúng với DB của bạn)
+--     CONSTRAINT `fk_transaction_user`
+--         FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+--         
+--     CONSTRAINT `fk_transaction_package` 
+--         FOREIGN KEY (`package_id`) REFERENCES `subscription_packages`(`id`) ON DELETE CASCADE
+-- );
 
--- drop table collection_items;
--- drop table collections;
--- drop table movie;
--- drop table episode;
--- drop table user;
--- 1. TẠO BẢNG USER TRƯỚC (Vì nó không phụ thuộc vào ai)actordirectorcountrycountry
 
-select * from movie
+SELECT * FROM subscription_packages;
