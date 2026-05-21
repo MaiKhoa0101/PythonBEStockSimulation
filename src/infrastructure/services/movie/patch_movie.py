@@ -4,7 +4,6 @@ from src.presentation.dtos.movie_dto import MoviePatchDTO
 from src.application.interfaces.services.movies_service_interface import IPatchMovie
 from src.infrastructure.database.utils.mapping import dto_to_entity
 
-
 class PatchMovie(IPatchMovie):
     def __init__(self, movie_repository: IMoviesRepository):
         self.movie_repository = movie_repository
@@ -14,16 +13,22 @@ class PatchMovie(IPatchMovie):
         if not existing_movie:
             return None
 
-        # ✅ Fix: khởi tạo trước if
-        episode_entities = [
-            dto_to_entity(ep, Episode, overrides={"id": "", "id_movie": id})
-            for ep in (movie_data.episodes or [])
-        ]
+        episode_entities = None
+        if movie_data.episodes is not None:
+            episode_entities = [
+                dto_to_entity(ep, Episode, overrides={"id": "", "id_movie": id})
+                for ep in movie_data.episodes
+            ]
+
         movie_entity = dto_to_entity(
             movie_data,
             Movie,
             exclude={"episodes"},
-            overrides={"id": id, "episodes": episode_entities}
+            overrides={
+                "id": id,
+                "episodes": episode_entities,  # None nếu FE không gửi episodes
+            }
         )
+
         updated = await self.movie_repository.patch_movie(movie_entity=movie_entity)
         return updated or None

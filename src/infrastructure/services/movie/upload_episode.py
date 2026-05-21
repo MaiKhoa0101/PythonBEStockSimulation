@@ -31,8 +31,6 @@ class UploadEpisode(IUploadEpisode):
         finally:
             await file.close()
 
-    # ─────────────────────────── Public ────────────────────────────
-
     async def upload_episode_video_into_local_system_path(
         self, movie_slug: str, episode_slug: str, episode_id: str, file: UploadFile
     ) -> str:
@@ -98,18 +96,15 @@ class UploadEpisode(IUploadEpisode):
             m3u8_full_path = os.path.join(target_dir, "index.m3u8")
             print ("Xu ly upload hls voi path "+m3u8_full_path)
 
-            def run_ffmpeg():
-                (
+            await asyncio.to_thread(                    
                     ffmpeg
                     .input(temp_path)
                     .output(m3u8_full_path, format='hls', hls_time=10, hls_list_size=0, c='copy')
                     .run(overwrite_output=True, capture_stdout=True, capture_stderr=True)
-                )
-
-            await asyncio.to_thread(run_ffmpeg)
+            )
 
             is_updated = await self.movie_repository.upload_episode(
-                episode_id, relative_db_path, is_hls=True   # → link_m3u8
+                episode_id, relative_db_path, is_hls=True  
             )
             if not is_updated:
                 print(f"Cảnh báo: Không tìm thấy tập {episode_id} để cập nhật DB.")

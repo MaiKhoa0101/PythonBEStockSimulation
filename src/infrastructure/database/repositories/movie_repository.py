@@ -1,6 +1,9 @@
+from typing import List
+from dataclasses import asdict
+
 from src.infrastructure.database.utils.mapping import entity_to_model, model_to_entity
 from src.presentation.dtos.movie_dto import MovieCreateDTO
-from src.domain.entities.movies.movie import Movie
+from src.domain.entities.movies.movie import Episode, Movie
 from src.infrastructure.database.models.movies.movie_model import EpisodeModel, MovieModel
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
 from sqlalchemy.orm import Session, joinedload
@@ -126,50 +129,67 @@ class MoviesRepositories(IMoviesRepository):
         movie_entity.updated_at = db_movie.updated_at
 
         return movie_entity
-    
+        
     async def patch_movie(self, movie_entity):
-        db_movie = self.db.query(MovieModel).filter(
-            MovieModel.id == movie_entity.id,
-            MovieModel.is_deleted == False
-        ).first()
-        if not db_movie:
-            return None
-        valid_columns = {col.key for col in sa_inspect(MovieModel).mapper.column_attrs}
-        exclude = {"id", "created_at", "updated_at"}
+        try:
+            db_movie = self.db.query(MovieModel).filter(
+                MovieModel.id == movie_entity.id,
+                MovieModel.is_deleted == False
+            ).first()
+            if not db_movie:
+                return None
 
-        from dataclasses import asdict
-        for k, v in asdict(movie_entity).items():
-            if k in valid_columns and k not in exclude and v is not None:
-                setattr(db_movie, k, v)
+            valid_columns = {col.key for col in sa_inspect(MovieModel).mapper.column_attrs}
+            exclude = {"id", "created_at", "updated_at"}
 
-        if movie_entity.episodes:
-            await self.upsert_episode(movie_entity)
+            for k, v in asdict(movie_entity).items():
+                if k in valid_columns and k not in exclude and v is not None:
+                    setattr(db_movie, k, v)
 
-        self.db.commit()
-        self.db.refresh(db_movie)
+            if movie_entity.episodes is not None:
+                await self._replace_episodes(db_movie, movie_entity.episodes)
+            self.db.commit()
+            self.db.refresh(db_movie)
 
-        movie_entity.id = db_movie.id
-        movie_entity.created_at = db_movie.created_at
-        movie_entity.updated_at = db_movie.updated_at
+            movie_entity.id = db_movie.id
+            movie_entity.created_at = db_movie.created_at
+            movie_entity.updated_at = db_movie.updated_at
 
-        return movie_entity
-    
+            return movie_entity
 
+        except Exception as e:
+            self.db.rollback() 
+            raise Exception(f"Lỗi patch movie: {str(e)}")
+
+
+    async def _replace_episodes(self, db_movie: MovieModel, new_episodes: List[Episode]) -> None:
+        self.db.query(EpisodeModel).filter(
+            EpisodeModel.id_movie == db_movie.id
+        ).delete(synchronize_session=False)
+
+        for ep in new_episodes:
+            db_ep = EpisodeModel(
+                id_movie=db_movie.id,
+                name_episode=ep.name_episode,
+                slug=ep.slug,
+                filename=ep.filename,
+                link_embed=ep.link_embed,
+                link_m3u8=ep.link_m3u8,
+                server_name=ep.server_name,
+                description=ep.description,
+            )
+            self.db.add(db_ep)
+            
     async def upsert_episode(self, movie_entity):
         db_movie = self.db.query(MovieModel).filter(
             MovieModel.id == movie_entity.id,
             MovieModel.is_deleted == False
         ).first()
         
-        #check có cập nhật episode ko
         if movie_entity.episodes:
-            # Lặp từng episode cập nhật
             for episode in movie_entity.episodes:
                 existed_ep = None
 
-                # check trong db, coi có trùng id hay name ko,
-                # có thì sửa lên episode gốc
-                # không thì tạo mới
                 for db_ep in db_movie.episodes:
                     if (episode.id and episode.id == db_ep.id) or (episode.slug and episode.slug == db_ep.slug):
                         existed_ep = db_ep
