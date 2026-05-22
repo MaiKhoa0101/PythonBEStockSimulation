@@ -1,0 +1,13 @@
+from typing import Protocol
+
+from src.domain.entities.transaction.transaction import Transaction
+
+class ITransactionRepository(Protocol):
+    async def create_transaction(transaction:Transaction):
+        ...
+    async def read_transaction_by_id_user(id:str):
+        ...
+    async def read_transaction_by_id_package(id:str):
+        ...
+    async def read_transaction_by_id_self(id:str):
+        ...

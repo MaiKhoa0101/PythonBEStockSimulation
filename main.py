@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from src.presentation.controller.v1 import transaction
 from src.presentation.controller.v1 import subscription, movies,users,collection
 from src.infrastructure.database.session import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,6 +28,8 @@ app.include_router(movies.router, prefix="/api/v2/movies")
 app.include_router(users.router, prefix="/api/v1/users")
 app.include_router(collection.router, prefix="/api/v1/collection")
 app.include_router(subscription.router, prefix="/api/v1/subscription")
+app.include_router(transaction.router, prefix="/api/v1/transaction")
+
 
 @app.get("/")
 def root():

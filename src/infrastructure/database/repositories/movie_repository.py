@@ -153,7 +153,7 @@ class MoviesRepositories(IMoviesRepository):
             movie_entity.id = db_movie.id
             movie_entity.created_at = db_movie.created_at
             movie_entity.updated_at = db_movie.updated_at
-
+    
             return movie_entity
 
         except Exception as e:

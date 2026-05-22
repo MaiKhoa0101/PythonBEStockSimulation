@@ -24,7 +24,9 @@ class SubscriptionService(ISubscriptionService):
         return result
     
     async def update_subscription_package(self, subscription_update_dto:SubscriptionUpdateDTO):
-        result =  await super().update_subscription_package(subscription_update_dto)
+        subscription = dto_to_entity(subscription_update_dto, Subscription)
+
+        result =  await self.subscription_repo.update_subscription_packages(subscription)
         return result
     
     async def delete_subscription_package(self, package_id:str):

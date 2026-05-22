@@ -78,7 +78,6 @@ USE movie_system;
 --     `status` VARCHAR(50) DEFAULT 'PENDING',
 --     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
 --     
---     -- Khai báo Khóa ngoại (Đảm bảo bảng users có chữ 's' hoặc sửa lại cho đúng với DB của bạn)
 --     CONSTRAINT `fk_transaction_user`
 --         FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
 --         
@@ -86,5 +85,6 @@ USE movie_system;
 --         FOREIGN KEY (`package_id`) REFERENCES `subscription_packages`(`id`) ON DELETE CASCADE
 -- );
 
-
 SELECT * FROM subscription_packages;
+
+SELECT * FROM transactions;

@@ -2,6 +2,9 @@
 
 from fastapi import Depends
 
+from src.application.interfaces.services.transaction_service import ITransactionService
+from src.infrastructure.database.repositories.transaction_repository import TransactionRepository
+from src.infrastructure.services.transaction.transaction_service import TransactionService
 from src.infrastructure.services.subscription.subscription_service import SubscriptionService
 from src.application.interfaces.services.subscription_service import ISubscriptionService
 from src.infrastructure.database.repositories.subscription_repository import SubscriptionRepository
@@ -47,6 +50,10 @@ def ICollectionRepositoryDependency(db: Session = Depends(get_db)):
 def ISubscriptionRepositoryDependency(db:Session = Depends(get_db)):
     return SubscriptionRepository(db=db)
 
+def ITransactionRepositoryDependency(db:Session = Depends(get_db)):
+    return TransactionRepository(db=db)
+
+#=================================================ok
 # Bơm phụ thuộc
 def IGetListMoviesServiceDependency(
     movie_repository: IMoviesRepository = Depends(IMoviesRepositoryDependency),
@@ -148,4 +155,12 @@ def ISubscriptionServiceDependency(
 )-> ISubscriptionService:
     return SubscriptionService(
         subscription_repo=subscription_repository
+    )
+
+
+def ITransactionServiceDependency(
+    transaction_repository: ITransactionRepositoryDependency= Depends(ITransactionRepositoryDependency)
+)-> ITransactionService:
+    return TransactionService(
+        transaction_repository=transaction_repository
     )

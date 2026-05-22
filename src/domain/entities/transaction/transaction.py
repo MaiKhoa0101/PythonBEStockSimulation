@@ -5,10 +5,11 @@ from datetime import datetime
 
 @dataclass
 class Transaction:
-    id: str
-    user_id: str
-    package_id: str
-    amount: int
-    status: str
+    id: str =None
+    user_id: str = None
+    package_id: str =None
+    amount: int =None
+    status: str =None
+    payment_method: str =None
     created_at: Optional[datetime] = None
-
+    
