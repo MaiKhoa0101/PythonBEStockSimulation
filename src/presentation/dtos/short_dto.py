@@ -10,14 +10,16 @@ class ShortBaseDTO(BaseModel):
     slug:str
     start_time: int =None
     duration:int =None
-    video_url:str =None
+    video_url:str
 
     like_count:int = 0
     view_count:int = 0
 
 class ShortCreateDTO(ShortBaseDTO):
-    pass
+    user_id:str = None
+    video_url:str =None
 
+    
 class ShortResponseDTO(ShortBaseDTO):
     id:str
     created_at: Optional[datetime] = None

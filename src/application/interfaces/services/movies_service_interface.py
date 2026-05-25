@@ -37,5 +37,5 @@ class IUploadEpisode(Protocol):
     async def upload_episode_video_into_local_system_path(movie_slug: str, episode_id: str, file: UploadFile) -> str:
         ...
 
-    async def upload_episode_video_hls(movie_slug: str, episode_id: str, file: UploadFile, bg_tasks: BackgroundTasks) -> str:
+    async def upload_episode_video_hls( first_folder: str, second_folder: str, file: UploadFile, bg_tasks: BackgroundTasks,is_short:bool =False) -> str:
         ...

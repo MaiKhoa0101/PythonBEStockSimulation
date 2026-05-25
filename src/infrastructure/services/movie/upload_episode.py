@@ -59,7 +59,7 @@ class UploadEpisode(IUploadEpisode):
             raise HTTPException(status_code=500, detail=str(e))
 
     async def upload_episode_video_hls(
-        self, movie_slug: str, episode_slug: str, episode_id: str, file: UploadFile, bg_tasks: BackgroundTasks
+        self, first_folder: str, second_folder: str, episode_id: str, file: UploadFile, bg_tasks: BackgroundTasks,is_short:bool =False
     ) -> str:
         file_ext = self._validate_and_get_extension(file.filename)
 
@@ -70,11 +70,13 @@ class UploadEpisode(IUploadEpisode):
         os.makedirs(temp_dir, exist_ok=True)
         temp_path = os.path.join(temp_dir, f"{episode_id}_goc{file_ext}")
 
-        # media/movie/{movie_slug}/{episode_slug}/hls/
-        target_dir = os.path.join(base_dir, "media", "movie", movie_slug, episode_slug, "hls")
+        # media/movie/{first_folder}/{episode_slug}/hls/
+        if not is_short:
+            target_dir = os.path.join(base_dir, "media", "movie", first_folder, second_folder, "hls")
+            os.makedirs(target_dir, exist_ok=True)
+        target_dir = os.path.join(base_dir, "media", "short", first_folder, second_folder, "hls")
         os.makedirs(target_dir, exist_ok=True)
-
-        relative_db_path = f"movie/{movie_slug}/{episode_slug}/hls/index.m3u8"
+        relative_db_path = f"movie/{first_folder}/{second_folder}/hls/index.m3u8"
 
         await self._write_upload_file(file, temp_path)
         print ("Xu ly upload hls")

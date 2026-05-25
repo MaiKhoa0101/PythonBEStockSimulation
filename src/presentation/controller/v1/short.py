@@ -1,14 +1,46 @@
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
 
+from src.presentation.dtos.short_dto import ShortCreateDTO
 from src.application.interfaces.services.short_service_interface import IShortService
 from src.infrastructure.security.security import get_current_user_id
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO
 from src.domain.entities.movies.movie import Movie
 from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie, IPatchMovie, IUpdateEntireMovie, IUploadEpisode
-from src.presentation.controller.dependencies import IShortServiceDependency
+from src.presentation.controller.dependencies import IShortServiceDependency, IUploadEpisodeServiceDepedency
 
 router = APIRouter()
+
+
+@router.post("/create")
+async def api_create_short(
+    bg_tasks: BackgroundTasks,
+    short_data: ShortCreateDTO,
+    shortService: IShortService = Depends(IShortServiceDependency),
+    current_user_id: str = Depends(get_current_user_id),
+    file: UploadFile = File(...),
+    upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
+):
+    result_path = await upload_service.upload_episode_video_hls(
+        short_data.movie_id, short_data.episode_id, file, bg_tasks
+    )
+    short_data.video_url=result_path
+    short_data.user_id=current_user_id
+    result = await shortService.create_short(
+        short_data
+    )
+    print(f"result create: {result}")
+    if result:
+        return{
+            "status":"Success",
+            "data":result
+        }
+    else: 
+        return{
+            "status":"Failed",
+            "data":"Update không thành công"
+        }
+    
 
 @router.get("/{id}")
 async def api_get_shorts_list(
@@ -28,15 +60,13 @@ async def api_get_shorts_list(
             "data":"Lấy danh sách không thành công"
         }
 
-@router.get("/name/{name}")
-async def api_get_movie_detail_by_name(
-    name: str,
-    current_user_id: str = Depends(get_current_user_id),
-    getMovieByNameService: IGetMoviesDetailByName = Depends(IGetMoviesDetailByNameDependency)
+@router.get("movie/{id}")
+async def api_get_shorts_by_movie_id(
+    id:str=None,
+    shortService: IShortService = Depends(IShortServiceDependency)
 ):
-    
     # Gọi hàm execute của Query
-    result = await getMovieByNameService.fetch_movie_detail_by_name(name,current_user_id)
+    result = await shortService.get_shorts_by_movie_id(id)
     if result:
         return{
             "status":"Success",
@@ -45,113 +75,16 @@ async def api_get_movie_detail_by_name(
     else: 
         return{
             "status":"Failed",
-            "data":"Tìm không thành công"
+            "data":"Lấy danh sách không thành công"
         }
-
-
-@router.get("/id/{id}")
-async def api_get_movie_detail_by_id(
-    id: str,
-    getMovieByIdService: IGetMoviesDetailById = Depends(IGetMoviesDetailByIdDependency)
-):
-    result = await getMovieByIdService.fetch_movie_detail_by_id(id)
-    if result:
-        return{
-            "status":"Success",
-            "data":result
-        }
-    else: 
-        return{
-            "status":"Failed",
-            "data":"Tìm không thành công"
-        }
-
-
-@router.post("/create")
-async def api_create_movie(
-    movie_data: MovieCreateDTO,
-    createMovieService: ICreateMovie = Depends(ICreateMovieDependency)
-):
-    result = await createMovieService.create_movie(
-        movie_data
-    )
-    print(f"result create: {result}")
-    if result:
-        return{
-            "status":"Success",
-            "data":result
-        }
-    else: 
-        return{
-            "status":"Failed",
-            "data":"Update không thành công"
-        }
-
-@router.post("/favourite_list/{name}")
-async def api_post_movie_into_favourite_list(
-    name:str,
-):
-    return{
-        "status":"Success",
-        "data":"Thành công"
-    }
-
-@router.post("/add_episode")
-async def api_add_episode(
-    movie_slug:str,
-    episode_id: str,
-    file: UploadFile = File(...)
-):
-    return
-
-
-@router.put("/update/{id}")
-async def api_update_movie(
-    id:str = Path(...),
-    updateMovieDTO: MovieUpdateDTO = ...,
-    updateEntireMovieService : IUpdateEntireMovie = Depends(IUpdateEntireMovieDependency)
-):
-    result = await updateEntireMovieService.update_entire_movie(
-        id,
-        updateMovieDTO
-    )
-    if result:
-        return{
-            "status":"Success",
-            "data":result
-        }
-    else: 
-        return{
-            "status":"Failed",
-            "data":"Update không thành công"
-        }
-
-@router.patch("/patch-movie/{id}")
-async def api_patch_movie(
-    id:str = Path(...),
-    update_batch_movie: MoviePatchDTO = ...,
-    patchMovieService: IPatchMovie= Depends(IPatchMovieDependency)
-):
-    result = await patchMovieService.patch_movie(id,update_batch_movie)
-    if result:
-        return{
-            "status":"Success",
-            "data":result
-        }
-    else: 
-        return{
-            "status":"Failed",
-            "data":"Update không thành công"
-        }
-
-
-@router.delete("/delete-by-id/{id}")
-async def api_delete_movie(
-    id:str =Path(...),
-    DeleteMovieService= Depends(IDeleteMovieDependency)
-):
-    result = await DeleteMovieService.delete_movie_by_id(id)
     
+
+@router.get("episode/{id}")
+async def api_get_shorts_by_episode_id(
+    id:str=None,
+    shortService: IShortService = Depends(IShortServiceDependency)
+):
+    result = await shortService.get_shorts_by_episode_id(id)
     if result:
         return{
             "status":"Success",
@@ -160,32 +93,61 @@ async def api_delete_movie(
     else: 
         return{
             "status":"Failed",
-            "data":"Xóa không thành công"
+            "data":"Lấy danh sách không thành công"
         }
-@router.post("/upload-video/{movie_slug}/{episode_slug}/{episode_id}")
-async def api_upload_episode_video_local(
-    movie_slug: str = Path(...),
-    episode_slug: str = Path(...),
-    episode_id: str = Path(...),
-    file: UploadFile = File(...),
-    upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
+    
+@router.get("episode/{id}")
+async def api_get_shorts_by_self_id(
+    id:str=None,
+    shortService: IShortService = Depends(IShortServiceDependency)
 ):
-    result_path = await upload_service.upload_episode_video_into_local_system_path(
-        movie_slug, episode_slug, episode_id, file
-    )
-    return {"status": "Success", "data": result_path}
+    result = await shortService.get_short_by_self_id(id)
+    if result:
+        return{
+            "status":"Success",
+            "data":result
+        }
+    else: 
+        return{
+            "status":"Failed",
+            "data":"Lấy danh sách không thành công"
+        }
+    
+@router.get("user/{id}")
+async def api_get_shorts_by_user_id(
+    current_user_id: str = Depends(get_current_user_id),
+    shortService: IShortService = Depends(IShortServiceDependency)
+):
+    # Gọi hàm execute của Query
+    result = await shortService.get_shorts_by_user_id(current_user_id)
+    if result:
+        return{
+            "status":"Success",
+            "data":result
+        }
+    else: 
+        return{
+            "status":"Failed",
+            "data":"Lấy danh sách không thành công"
+        }
+
+@router.delete("/{id}")
+async def api_delete_short(
+    id:str=None,
+    shortService: IShortService = Depends(IShortServiceDependency)
+):
+    # Gọi hàm execute của Query
+    result = await shortService.delete_short(id)
+    if result:
+        return{
+            "status":"Success",
+            "data":result
+        }
+    else: 
+        return{
+            "status":"Failed",
+            "data":"Lấy danh sách không thành công"
+        }
 
 
-@router.post("/upload-video-hls/{movie_slug}/{episode_slug}/{episode_id}")
-async def api_upload_episode_video_hls(
-    bg_tasks: BackgroundTasks,
-    movie_slug: str = Path(...),
-    episode_slug: str = Path(...),
-    episode_id: str = Path(...),
-    file: UploadFile = File(...),
-    upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
-):
-    result_path = await upload_service.upload_episode_video_hls(
-        movie_slug, episode_slug, episode_id, file, bg_tasks
-    )
-    return {"status": "Success", "data": result_path}
+
