@@ -29,3 +29,4 @@ class UserModel(Base):
 
     collections = relationship("CollectionModel", back_populates="user")
     transactions = relationship("TransactionModel", back_populates="user")
+    shorts = relationship("ShortModel", back_populates= "user")

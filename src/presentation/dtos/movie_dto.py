@@ -1,9 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
-from typing import List, Optional
-from datetime import datetime
+
 
 from src.presentation.dtos.actors_dto import ActorDTO
 from src.presentation.dtos.categories_dto import CategoryDTO
@@ -20,7 +18,6 @@ class EpisodeBaseDTO(BaseModel):
     link_m3u8: Optional[str] = None
     server_name: Optional[str] = None
     description: Optional[str] = None
-
 
 class EpisodeCreateDTO(EpisodeBaseDTO):
     pass

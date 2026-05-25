@@ -2,6 +2,8 @@
 
 from fastapi import Depends
 
+from src.application.interfaces.repositories.short_repository_interface import IShortRepository
+from src.infrastructure.database.repositories.short_repository import ShortRepository
 from src.infrastructure.services.users.get_user_by_id import GetUserById
 from src.infrastructure.services.users.update_user_by_id import UpdateUser
 from src.application.interfaces.services.transaction_service import ITransactionService
@@ -54,6 +56,9 @@ def ISubscriptionRepositoryDependency(db:Session = Depends(get_db)):
 
 def ITransactionRepositoryDependency(db:Session = Depends(get_db)):
     return TransactionRepository(db=db)
+
+def IShortRepositoryDependency(db:Session = Depends(get_db)):
+    return ShortRepository(db=db)
 
 #=================================================ok
 # Bơm phụ thuộc
@@ -186,4 +191,11 @@ def ITransactionServiceDependency(
         subscription_repository=subscription_repository,
         user_update = user_update,
         user_get_by_id=user_get_by_id
+    )
+
+def IShortServiceDependency(
+    short_repository:IShortRepositoryDependency = Depends(IShortRepositoryDependency)
+)-> IShortRepository:
+    return ShortRepository(
+        short_repository = short_repository
     )

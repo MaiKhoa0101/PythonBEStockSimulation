@@ -34,6 +34,7 @@ class EpisodeModel(Base):
     updated_by = Column(String(50))
 
     movie = relationship("MovieModel", back_populates="episodes")
+    shorts= relationship("ShortModel", back_populates="episode", cascade="all, delete-orphan")
 
 
 class MovieModel(Base):
@@ -84,3 +85,4 @@ class MovieModel(Base):
     countries = relationship("CountryModel", secondary=movie_country_association, back_populates="movies")
 
     collection_items = relationship("CollectionItemModel", back_populates="movie", cascade="all, delete-orphan")
+    shorts= relationship("ShortModel", back_populates="movie", cascade="all, delete-orphan")

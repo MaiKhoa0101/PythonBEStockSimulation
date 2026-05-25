@@ -85,5 +85,34 @@ USE movie_system;
 --         FOREIGN KEY (`package_id`) REFERENCES `subscription_packages`(`id`) ON DELETE CASCADE
 -- );
 
-SELECT * FROM subscription_packages;
-select * FROM user;
+-- CREATE TABLE `shorts` (
+--     `id` VARCHAR(50) PRIMARY KEY DEFAULT(UUID()),
+--     `movie_id` VARCHAR(50) NOT NULL,
+-- 	`episode_id` VARCHAR(50) NOT NULL,
+-- 	`user_id` VARCHAR(50) NOT NULL,
+
+--     `title` VARCHAR(1000) NOT NULL,
+-- 	`slug` VARCHAR(200),
+-- 	`start_time` INTEGER,
+-- 	`duration` INTEGER,
+--     `video_url` VARCHAR(500) NOT NULL,
+--     
+--     `like_count` INT DEFAULT(0),
+-- 	`view_count` INT DEFAULT(0),
+
+--     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+--     created_by VARCHAR(50),
+--     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+--     updated_by VARCHAR(50),
+--     
+--     CONSTRAINT `fk_short_user`
+-- 		FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE CASCADE,
+--         
+--     CONSTRAINT `fk_short_movie`
+--         FOREIGN KEY (`movie_id`) REFERENCES `movie`(`id`) ON DELETE CASCADE,
+--         
+--     CONSTRAINT `fk_short_episode` 
+--         FOREIGN KEY (`episode_id`) REFERENCES `episode`(`id`) ON DELETE CASCADE
+-- );
+-- SELECT * FROM subscription_packages;
+select * FROM shorts;

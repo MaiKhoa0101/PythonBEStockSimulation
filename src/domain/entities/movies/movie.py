@@ -2,9 +2,6 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 from datetime import datetime
 
-from dataclasses import dataclass, field
-from typing import List, Optional
-from datetime import datetime
 
 from src.domain.entities.actors.actor import Actor
 from src.domain.entities.categories.categories import Category

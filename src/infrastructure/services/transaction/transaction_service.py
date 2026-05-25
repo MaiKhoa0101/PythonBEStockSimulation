@@ -1,7 +1,7 @@
 
 from src.presentation.dtos.user_dto import UserResponseDTO, UserUpdateDTO
 from src.application.interfaces.services.users_service_interface import IGetUserById, IUpdateUser
-from src.application.interfaces.repositories.subscription_repository import ISubscriptionRepository
+from src.application.interfaces.repositories.subscription_repository_interface import ISubscriptionRepository
 from src.infrastructure.database.utils.mapping import dto_to_entity
 from src.presentation.dtos.transaction_dto import TransactionCreateDTO, TransactionResponseDTO
 from src.domain.entities.transaction.transaction import Transaction

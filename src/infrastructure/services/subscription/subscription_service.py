@@ -3,7 +3,7 @@ from src.application.interfaces.repositories.transaction_repository import ITran
 from src.domain.entities.subscription.subscription import Subscription
 from src.infrastructure.database.utils.mapping import dto_to_entity
 from src.presentation.dtos.subscription_dto import SubscriptionCreateDTO, SubscriptionUpdateDTO
-from src.application.interfaces.repositories.subscription_repository import ISubscriptionRepository
+from src.application.interfaces.repositories.subscription_repository_interface import ISubscriptionRepository
 from src.application.interfaces.services.subscription_service import ISubscriptionService
 
 class SubscriptionService(ISubscriptionService):

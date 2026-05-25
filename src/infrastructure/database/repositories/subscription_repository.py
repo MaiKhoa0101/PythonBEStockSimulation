@@ -7,7 +7,7 @@ from src.infrastructure.database.models.movies.movie_model import MovieModel
 from src.infrastructure.database.utils.mapping import entity_to_model, model_to_entity
 from src.domain.entities.subscription.subscription import Subscription
 from src.infrastructure.database.models.subscription.subscription_model import SubscriptionPackageModel
-from src.application.interfaces.repositories.subscription_repository import ISubscriptionRepository
+from src.application.interfaces.repositories.subscription_repository_interface import ISubscriptionRepository
 from sqlalchemy import inspect as sa_inspect
 
 class SubscriptionRepository(ISubscriptionRepository):

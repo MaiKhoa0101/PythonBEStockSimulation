@@ -13,4 +13,4 @@ from src.infrastructure.database.models.users.user_model import UserModel
 from src.infrastructure.database.models.movie_collection.movie_collection_model import CollectionModel, CollectionItemModel
 from src.infrastructure.database.models.subscription.subscription_model import SubscriptionPackageModel
 from src.infrastructure.database.models.transaction.transaction_model import TransactionModel
-
+from src.infrastructure.database.models.shorts.short_model import ShortModel
