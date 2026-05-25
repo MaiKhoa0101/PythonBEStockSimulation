@@ -47,7 +47,6 @@ async def api_get_shorts_list(
     id:str=None,
     shortService: IShortService = Depends(IShortServiceDependency)
 ):
-    # Gọi hàm execute của Query
     result = await shortService.get_shorts(id)
     if result:
         return{
@@ -65,7 +64,6 @@ async def api_get_shorts_by_movie_id(
     id:str=None,
     shortService: IShortService = Depends(IShortServiceDependency)
 ):
-    # Gọi hàm execute của Query
     result = await shortService.get_shorts_by_movie_id(id)
     if result:
         return{
@@ -118,7 +116,6 @@ async def api_get_shorts_by_user_id(
     current_user_id: str = Depends(get_current_user_id),
     shortService: IShortService = Depends(IShortServiceDependency)
 ):
-    # Gọi hàm execute của Query
     result = await shortService.get_shorts_by_user_id(current_user_id)
     if result:
         return{
@@ -136,7 +133,6 @@ async def api_delete_short(
     id:str=None,
     shortService: IShortService = Depends(IShortServiceDependency)
 ):
-    # Gọi hàm execute của Query
     result = await shortService.delete_short(id)
     if result:
         return{

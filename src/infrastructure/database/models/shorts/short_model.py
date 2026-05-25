@@ -10,7 +10,7 @@ class ShortModel(Base):
     id = Column(String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
     movie_id = Column(String(50), ForeignKey("movie.id", ondelete="CASCADE"), nullable=False)
     episode_id = Column(String(50), ForeignKey("episode.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(String(50), ForeignKey("episode.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String(50), ForeignKey("user.id"), nullable=False)
 
     title = Column(String(1000), nullable= False)
     slug = Column(String (200), unique= True, index= True)
