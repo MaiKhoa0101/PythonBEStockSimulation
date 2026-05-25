@@ -86,5 +86,4 @@ USE movie_system;
 -- );
 
 SELECT * FROM subscription_packages;
-
-SELECT * FROM transactions;
+select * FROM user;

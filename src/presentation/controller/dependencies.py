@@ -2,6 +2,8 @@
 
 from fastapi import Depends
 
+from src.infrastructure.services.users.get_user_by_id import GetUserById
+from src.infrastructure.services.users.update_user_by_id import UpdateUser
 from src.application.interfaces.services.transaction_service import ITransactionService
 from src.infrastructure.database.repositories.transaction_repository import TransactionRepository
 from src.infrastructure.services.transaction.transaction_service import TransactionService
@@ -16,7 +18,7 @@ from src.infrastructure.services.movie_collection.get_favourite_list import GetC
 from src.application.interfaces.services.collection_service_interface import IAddMovieToCollectionService, ICreateCollectionService, IGetCollectionService
 from src.infrastructure.database.repositories.movie_collection_repository import CollectionRepository
 from src.infrastructure.services.users.login_user_service import LoginUser
-from src.application.interfaces.services.users_service_interface import ICreateUserService, ILoginUser
+from src.application.interfaces.services.users_service_interface import ICreateUserService, IGetUserById, ILoginUser, IUpdateUser
 from src.infrastructure.services.users.create_users_service import CreateUserService
 from src.infrastructure.database.repositories.user_repository import UserRepository
 from src.infrastructure.services.movie.delete_movie import DeleteMovie
@@ -126,6 +128,20 @@ def ILoginUserDependency(
         user_repository= user_repository
     )
 
+def IUserUpdateDependency(
+    user_repository: IUserRepositoryDependency = Depends(IUserRepositoryDependency)
+) -> IUpdateUser:
+    return UpdateUser(
+        user_repository= user_repository
+    )
+
+def IUserGetByIdDependency(
+    user_repository: IUserRepositoryDependency = Depends(IUserRepositoryDependency)
+) -> IGetUserById:
+    return GetUserById(
+        user_repository= user_repository
+    )
+
 #========== Collection Service Dependencies ==========
 
 def IGetCollectionServiceDependency(
@@ -151,16 +167,23 @@ def IAddMovieToCollectionServiceDependency(
 
 
 def ISubscriptionServiceDependency(
-    subscription_repository: ISubscriptionRepositoryDependency= Depends(ISubscriptionRepositoryDependency)
+    subscription_repository: ISubscriptionRepositoryDependency= Depends(ISubscriptionRepositoryDependency),
 )-> ISubscriptionService:
     return SubscriptionService(
-        subscription_repo=subscription_repository
+        subscription_repo=subscription_repository,
     )
 
 
 def ITransactionServiceDependency(
-    transaction_repository: ITransactionRepositoryDependency= Depends(ITransactionRepositoryDependency)
+    transaction_repository: ITransactionRepositoryDependency= Depends(ITransactionRepositoryDependency),
+    subscription_repository: ISubscriptionRepositoryDependency= Depends(ISubscriptionRepositoryDependency),
+    user_update: IUserUpdateDependency = Depends(IUserUpdateDependency),
+    user_get_by_id: IUserGetByIdDependency = Depends(IUserGetByIdDependency)
+
 )-> ITransactionService:
     return TransactionService(
-        transaction_repository=transaction_repository
+        transaction_repository=transaction_repository,
+        subscription_repository=subscription_repository,
+        user_update = user_update,
+        user_get_by_id=user_get_by_id
     )

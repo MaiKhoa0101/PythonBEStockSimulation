@@ -9,6 +9,7 @@ from src.application.interfaces.repositories.transaction_repository import ITran
 class TransactionRepository(ITransactionRepository):
     def __init__(self,db: Session):
         self.db = db
+        
     async def create_transaction(self,transaction:Transaction):
         db_transaction = entity_to_model(
             transaction,

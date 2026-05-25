@@ -17,7 +17,7 @@ class LoginUser(ILoginUser):
         if not (login_data.email and login_data.password):
             return None
         
-        result = self.user_repository.get_user_by_email(
+        result = await self.user_repository.get_user_by_email(
             login_data.email
         )
         if not result:

@@ -16,6 +16,7 @@ class TransactionBaseDTO(BaseModel):
 
 class TransactionCreateDTO(TransactionBaseDTO):
     status: str = "Pending"
+    payment_method:str = "Credit Card"
     pass
 
 class TransactionResponseDTO(TransactionBaseDTO):

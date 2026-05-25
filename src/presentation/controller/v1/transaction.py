@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 
+from src.infrastructure.security.security import get_current_user_id
 from src.presentation.dtos.transaction_dto import TransactionCreateDTO
 from src.application.interfaces.services.transaction_service import ITransactionService
 from src.presentation.dtos.subscription_dto import SubscriptionCreateDTO, SubscriptionUpdateDTO
@@ -8,6 +9,17 @@ from src.application.interfaces.services.subscription_service import ISubscripti
 
 
 router = APIRouter()
+
+@router.post("/buy_subscription")
+async def buy_subscription(
+    package_id:str,
+    current_user_id: str = Depends(get_current_user_id),
+    transaction_service: ITransactionService = Depends(ITransactionServiceDependency)
+):
+    result = await transaction_service.buy_subscription_package(user_id=current_user_id,package_id=package_id)
+    return result
+
+
 
 @router.get("/{id}")
 async def get_transactions_by_id(

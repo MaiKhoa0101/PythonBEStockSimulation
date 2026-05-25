@@ -1,9 +1,13 @@
 
-from requests import Session
+from dataclasses import asdict
 
+from sqlalchemy.orm import Session, joinedload
+
+from src.infrastructure.database.utils.mapping import model_to_entity
 from src.infrastructure.database.models.users.user_model import UserModel
 from src.domain.entities.users.user import User
 from src.application.interfaces.repositories.users_repository_interface import IUserRepository
+from sqlalchemy import inspect as sa_inspect
 
 
 class UserRepository(IUserRepository):
@@ -28,24 +32,17 @@ class UserRepository(IUserRepository):
         user.updated_at = new_user.updated_at
         return user 
     
-    def get_user_by_id(self, user_id: str) -> User:
-        user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
-        if user:
-            return User(
-                id=user.id,
-                username=user.username,
-                email=user.email,
-                phone_number=user.phone_number,
-                password=user.password,
-                full_name=user.full_name,
-                is_active=user.is_active,
-                is_verified=user.is_verified,
-                created_at=user.created_at,
-                updated_at=user.updated_at
-            )
-        return None
+    async def get_user_by_id(self, user_id: str) -> User:
+        db_user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
+        if not db_user:
+            return None
+        user =model_to_entity(
+            db_user,
+            User
+        )
+        return user
     
-    def get_user_by_email(self, email: str) -> User:
+    async def get_user_by_email(self, email: str) -> User:
         user = self.db.query(UserModel).filter(UserModel.email == email).first()
         if user:
             return User(
@@ -62,36 +59,28 @@ class UserRepository(IUserRepository):
             )
         return None
     
-    def update_user(self, user_id: str, user_data: User) -> User:
-        user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
-        if not user:
+    async def update_user(self, user_id: str, user_data: User) -> User:
+        print("vao duoc repo")
+        db_user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
+        if not db_user:
             return None
-        
-        user.email = user_data.email
-        user.password = user_data.password
-        user.full_name = user_data.full_name
-        user.is_active = user_data.is_active
-        user.is_verified = user_data.is_verified
+        valid_columns = {col.key for col in sa_inspect(UserModel).mapper.column_attrs}
+        exclude = {"id", "created_at", "updated_at"}
+        for k, v in asdict(user_data).items():
+            if k in valid_columns and k not in exclude and v is not None:
+                setattr(db_user, k, v)
+
         
         self.db.commit()
-        self.db.refresh(user)
+        self.db.refresh(db_user)
         
-        if user:
-            return User(
-                id=user.id,
-                username=user.username,
-                email=user.email,
-                phone_number=user.phone_number,
-                password=user.password,
-                full_name=user.full_name,
-                is_active=user.is_active,
-                is_verified=user.is_verified,
-                created_at=user.created_at,
-                updated_at=user.updated_at
-            )
-        return None
+        user_data = model_to_entity(
+            db_user,
+            User
+        )
+        return user_data
     
-    def delete_user(self, user_id: str) -> None:
+    async def delete_user(self, user_id: str) -> None:
         user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
         if user:
             self.db.delete(user)

@@ -3,7 +3,7 @@ from typing import Protocol
 from src.domain.entities.transaction.transaction import Transaction
 
 class ITransactionRepository(Protocol):
-    async def create_transaction(transaction:Transaction):
+    async def create_transaction(transaction:Transaction) ->Transaction:
         ...
     async def read_transaction_by_id_user(id:str):
         ...

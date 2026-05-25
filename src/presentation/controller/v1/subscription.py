@@ -28,4 +28,3 @@ async def create_subscription(
 ):
     result = await subscription_service.update_subscription_package(subscription)
     return result
-

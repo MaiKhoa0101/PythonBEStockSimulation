@@ -5,12 +5,12 @@ from datetime import datetime
 
 @dataclass
 class User:
-    id: str
-    username: str
-    email: str
-    password: str
-    full_name: str
-    phone_number: str
+    id: str = None
+    username: str =None
+    email: str = None
+    password: str = None
+    full_name: str = None   
+    phone_number: str = None
     is_active: bool = True
     is_verified: bool = False
     is_deleted: bool = False
