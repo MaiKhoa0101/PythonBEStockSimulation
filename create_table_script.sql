@@ -115,4 +115,5 @@ USE movie_system;
 --         FOREIGN KEY (`episode_id`) REFERENCES `episode`(`id`) ON DELETE CASCADE
 -- );
 -- SELECT * FROM subscription_packages;
+	
 select * FROM shorts;

@@ -42,6 +42,9 @@ def model_to_entity(model_instance, entity_class, overrides: dict = None):
 
 
 def entity_to_dto(entity, dto_class, exclude: set = None, overrides: dict = None):
+    if not entity:
+        return None
+        
     exclude = exclude or set()
     overrides = overrides or {}
     valid_fields = (

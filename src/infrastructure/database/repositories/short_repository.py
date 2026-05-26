@@ -10,6 +10,7 @@ class ShortRepository(IShortRepository):
         self.db = db
 
     async def get_shorts(self, id:str = None):
+        print("Vào tới repo")
         short:list[Short]=[]
         if id:
             db_short = self.db.query(ShortModel).filter(
@@ -92,7 +93,7 @@ class ShortRepository(IShortRepository):
 
         self.db.add(db_short)
         self.db.commit()
-        self.db.refresh()
+        self.db.refresh(db_short)
         
         short.id=db_short.id
         short.created_at=db_short.created_at

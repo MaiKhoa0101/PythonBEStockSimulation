@@ -7,7 +7,7 @@ class ShortBaseDTO(BaseModel):
     user_id:str
     episode_id:str
     title:str
-    slug:str
+    slug: Optional[str] = None
     start_time: int =None
     duration:int =None
     video_url:str
@@ -21,6 +21,6 @@ class ShortCreateDTO(ShortBaseDTO):
 
     
 class ShortResponseDTO(ShortBaseDTO):
-    id:str
+    id:str =None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

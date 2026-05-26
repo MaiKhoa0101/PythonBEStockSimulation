@@ -2,6 +2,8 @@
 
 from fastapi import Depends
 
+from src.application.interfaces.services.short_service_interface import IShortService
+from src.infrastructure.services.short.short_service import ShortService
 from src.application.interfaces.repositories.short_repository_interface import IShortRepository
 from src.infrastructure.database.repositories.short_repository import ShortRepository
 from src.infrastructure.services.users.get_user_by_id import GetUserById
@@ -195,7 +197,7 @@ def ITransactionServiceDependency(
 
 def IShortServiceDependency(
     short_repository:IShortRepositoryDependency = Depends(IShortRepositoryDependency)
-)-> IShortRepository:
-    return ShortRepository(
+)-> IShortService:
+    return ShortService(
         short_repository = short_repository
     )

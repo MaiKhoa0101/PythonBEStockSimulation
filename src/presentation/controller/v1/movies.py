@@ -84,23 +84,6 @@ async def api_create_movie(
             "data":"Update không thành công"
         }
 
-@router.post("/favourite_list/{name}")
-async def api_post_movie_into_favourite_list(
-    name:str,
-):
-    return{
-        "status":"Success",
-        "data":"Thành công"
-    }
-
-@router.post("/add_episode")
-async def api_add_episode(
-    movie_slug:str,
-    episode_id: str,
-    file: UploadFile = File(...)
-):
-    return
-
 
 @router.put("/update/{id}")
 async def api_update_movie(
@@ -173,16 +156,18 @@ async def api_upload_episode_video_local(
     return {"status": "Success", "data": result_path}
 
 
-@router.post("/upload-video-hls/{movie_slug}/{episode_slug}/{episode_id}")
+@router.post("/upload-video-hls/{movie_slug}/{episode_slug}")
 async def api_upload_episode_video_hls(
     bg_tasks: BackgroundTasks,
     movie_slug: str = Path(...),
     episode_slug: str = Path(...),
-    episode_id: str = Path(...),
     file: UploadFile = File(...),
     upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
 ):
     result_path = await upload_service.upload_episode_video_hls(
-        movie_slug, episode_slug, episode_id, file, bg_tasks
+        first_folder= movie_slug, 
+        episode_slug= episode_slug, 
+        file=file, 
+        bg_tasks=bg_tasks
     )
     return {"status": "Success", "data": result_path}

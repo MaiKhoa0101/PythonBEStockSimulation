@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
 
 from src.presentation.dtos.short_dto import ShortCreateDTO
@@ -11,43 +10,51 @@ from src.presentation.controller.dependencies import IShortServiceDependency, IU
 
 router = APIRouter()
 
-
 @router.post("/create")
 async def api_create_short(
     bg_tasks: BackgroundTasks,
-    short_data: ShortCreateDTO,
-    shortService: IShortService = Depends(IShortServiceDependency),
-    current_user_id: str = Depends(get_current_user_id),
+    movie_id: str ,
+    episode_id: str,
+
+    title: str,
+    start_time: int,
+    duration: int,
+    
     file: UploadFile = File(...),
+    current_user_id: str = Depends(get_current_user_id),
+    shortService: IShortService = Depends(IShortServiceDependency),
     upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
 ):
     result_path = await upload_service.upload_episode_video_hls(
-        short_data.movie_id, short_data.episode_id, file, bg_tasks
+       first_folder= movie_id, 
+       episode_slug= episode_id, 
+       file= file, 
+       bg_tasks =bg_tasks, 
+       is_short = True
     )
-    short_data.video_url=result_path
-    short_data.user_id=current_user_id
-    result = await shortService.create_short(
-        short_data
-    )
-    print(f"result create: {result}")
-    if result:
-        return{
-            "status":"Success",
-            "data":result
-        }
-    else: 
-        return{
-            "status":"Failed",
-            "data":"Update không thành công"
-        }
     
+    short_data = ShortCreateDTO(
+        movie_id=movie_id,
+        episode_id=episode_id,
+        title=title,
+        start_time=start_time,
+        duration=duration,
+        video_url=result_path,
+        user_id=current_user_id
+    )
+    
+    result = await shortService.create_short(short_data)
+    
+    if result:
+        return {"status": "Success", "data": result}
+    return {"status": "Failed", "data": "Update không thành công"}
 
-@router.get("/{id}")
+@router.get("/shorts_list/")
 async def api_get_shorts_list(
-    id:str=None,
     shortService: IShortService = Depends(IShortServiceDependency)
 ):
-    result = await shortService.get_shorts(id)
+    print("Vào tới controller")
+    result = await shortService.get_shorts()
     if result:
         return{
             "status":"Success",
@@ -58,7 +65,27 @@ async def api_get_shorts_list(
             "status":"Failed",
             "data":"Lấy danh sách không thành công"
         }
+    
 
+@router.get("/shorts_list_by_id")
+async def api_get_shorts_list(
+    current_user_id: str = Depends(get_current_user_id),
+    shortService: IShortService = Depends(IShortServiceDependency)
+):
+    print("Vào tới controller")
+    result = await shortService.get_shorts(current_user_id)
+    if result:
+        return{
+            "status":"Success",
+            "data":result
+        }
+    else: 
+        return{
+            "status":"Failed",
+            "data":"Lấy danh sách không thành công"
+        }
+    
+    
 @router.get("movie/{id}")
 async def api_get_shorts_by_movie_id(
     id:str=None,
@@ -94,7 +121,7 @@ async def api_get_shorts_by_episode_id(
             "data":"Lấy danh sách không thành công"
         }
     
-@router.get("episode/{id}")
+@router.get("/{id}")
 async def api_get_shorts_by_self_id(
     id:str=None,
     shortService: IShortService = Depends(IShortServiceDependency)

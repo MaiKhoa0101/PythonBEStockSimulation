@@ -59,40 +59,42 @@ class UploadEpisode(IUploadEpisode):
             raise HTTPException(status_code=500, detail=str(e))
 
     async def upload_episode_video_hls(
-        self, first_folder: str, second_folder: str, episode_id: str, file: UploadFile, bg_tasks: BackgroundTasks,is_short:bool =False
+        self, first_folder: str, episode_slug: str, file: UploadFile, bg_tasks: BackgroundTasks, is_short: bool = False
     ) -> str:
         file_ext = self._validate_and_get_extension(file.filename)
-
         base_dir = self._get_base_dir()
 
-        # File gốc lưu tạm
         temp_dir = os.path.join(base_dir, "media", "temp")
         os.makedirs(temp_dir, exist_ok=True)
-        temp_path = os.path.join(temp_dir, f"{episode_id}_goc{file_ext}")
+        temp_path = os.path.join(temp_dir, f"{episode_slug}_goc{file_ext}")
 
-        # media/movie/{first_folder}/{episode_slug}/hls/
-        if not is_short:
-            target_dir = os.path.join(base_dir, "media", "movie", first_folder, second_folder, "hls")
-            os.makedirs(target_dir, exist_ok=True)
-        target_dir = os.path.join(base_dir, "media", "short", first_folder, second_folder, "hls")
+        # SỬA LỖI TẠI ĐÂY: Gắn cả target_dir và relative_db_path theo logic is_short
+        if is_short == False:
+            target_dir = os.path.join(base_dir, "media", "movie", first_folder, episode_slug, "hls")
+            relative_db_path = f"media/movie/{first_folder}/{episode_slug}/hls/index.m3u8"
+        else:
+            target_dir = os.path.join(base_dir, "media", "short", first_folder, episode_slug, "hls")
+            relative_db_path = f"media/short/{first_folder}/{episode_slug}/hls/index.m3u8"
+
         os.makedirs(target_dir, exist_ok=True)
-        relative_db_path = f"movie/{first_folder}/{second_folder}/hls/index.m3u8"
 
         await self._write_upload_file(file, temp_path)
-        print ("Xu ly upload hls")
+        print("Xu ly upload hls")
+        
         bg_tasks.add_task(
             self._process_ffmpeg_background,
             temp_path=temp_path,
             target_dir=target_dir,
-            episode_id=episode_id,
+            episode_id=episode_slug,
             relative_db_path=relative_db_path,
+            is_short=is_short
         )
 
         return relative_db_path
 
 
     async def _process_ffmpeg_background(
-        self, temp_path: str, target_dir: str, episode_id: str, relative_db_path: str
+        self, temp_path: str, target_dir: str, episode_id: str, relative_db_path: str,is_short
     ):
         try:
             m3u8_full_path = os.path.join(target_dir, "index.m3u8")
@@ -101,15 +103,25 @@ class UploadEpisode(IUploadEpisode):
             await asyncio.to_thread(                    
                     ffmpeg
                     .input(temp_path)
-                    .output(m3u8_full_path, format='hls', hls_time=10, hls_list_size=0, c='copy')
-                    .run(overwrite_output=True, capture_stdout=True, capture_stderr=True)
+                    .output(
+                        m3u8_full_path, 
+                        format='hls', 
+                        hls_time=10, 
+                        hls_list_size=0, 
+                        c='copy'
+                    )
+                    .run(
+                        overwrite_output=True, 
+                        capture_stdout=True, 
+                        capture_stderr=True
+                    )
             )
-
-            is_updated = await self.movie_repository.upload_episode(
-                episode_id, relative_db_path, is_hls=True  
-            )
-            if not is_updated:
-                print(f"Cảnh báo: Không tìm thấy tập {episode_id} để cập nhật DB.")
+            if (not is_short):
+                is_updated = await self.movie_repository.upload_episode(
+                    episode_id, relative_db_path, is_hls=True  
+                )
+                if not is_updated:
+                    print(f"Cảnh báo: Không tìm thấy tập {episode_id} để cập nhật DB.")
 
         except Exception as e:
             print(f"Lỗi quá trình xử lý HLS: {str(e)}")

@@ -10,7 +10,10 @@ class ShortService(IShortService):
         self.short_repository= short_repository
 
     async def get_shorts (self, id_user:str = None):
+        print("Vào tới service")
         result = await self.short_repository.get_shorts(id_user)
+        if not result:
+            return None
         result_dto = [
             entity_to_dto(
                 i,
@@ -23,6 +26,8 @@ class ShortService(IShortService):
 
     async def get_shorts_by_user_id(self,id:str):
         result = await self.short_repository.get_shorts_by_user_id(id)
+        if not result:
+            return None
         result_dto = [
             entity_to_dto(
                 i,
@@ -34,6 +39,8 @@ class ShortService(IShortService):
 
     async def get_shorts_by_movie_id(self,id:str):
         result = await self.short_repository.get_shorts_by_movie_id(id)
+        if not result:
+            return None
         result_dto = [
             entity_to_dto(
                 i,
@@ -45,6 +52,8 @@ class ShortService(IShortService):
 
     async def get_shorts_by_episode_id(self,id:str):
         result = await self.short_repository.get_shorts_by_episode_id(id)
+        if not result:
+            return None
         result_dto = [
             entity_to_dto(
                 i,
@@ -56,7 +65,9 @@ class ShortService(IShortService):
     
     
     async def get_short_by_self_id(self,id:str):
-        result = await self.short_repository.get_short_by_self_id(id)
+        result:Short = await self.short_repository.get_short_by_self_id(id)
+        if not result:
+            return None
         result_dto = entity_to_dto(
             result,
             ShortResponseDTO
@@ -67,8 +78,9 @@ class ShortService(IShortService):
             short_create_DTO,
             Short
         )
-        result = await self.short_repository.create_short(short)
-
+        result:Short = await self.short_repository.create_short(short)
+        if not result:
+            return None
         result_dto = entity_to_dto(
             result,
             ShortResponseDTO
@@ -77,5 +89,7 @@ class ShortService(IShortService):
     
     async def delete_short(self,id:str):
         result =  await self.short_repository.delete_short(id)
+        if not result:
+            return None
         return result
 

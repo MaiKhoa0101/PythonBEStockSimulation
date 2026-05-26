@@ -28,7 +28,11 @@ class LoginUser(ILoginUser):
         if not is_password_correct:
             return None
         
-        token_data = {"user_id": str(result.id)}
+        token_data = {
+            "user_id": str(result.id),
+            "full_name":str(result.full_name),
+            "premium_until":str(result.premium_until)
+        }
         access_token = create_access_token(data=token_data)
         response = ResponseLoginDTO(
             token = access_token
