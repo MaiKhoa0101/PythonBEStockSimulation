@@ -235,6 +235,7 @@ class MoviesRepositories(IMoviesRepository):
         self.db.commit()
 
         return True
+    
     async def upload_episode(
         self,
         episode_id: str,

@@ -68,7 +68,7 @@ async def api_get_shorts_list(
     
 
 @router.get("/shorts_list_by_id")
-async def api_get_shorts_list(
+async def api_get_shorts_list_by_id(
     current_user_id: str = Depends(get_current_user_id),
     shortService: IShortService = Depends(IShortServiceDependency)
 ):

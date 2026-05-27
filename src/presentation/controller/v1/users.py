@@ -8,7 +8,7 @@ from src.presentation.dtos.user_dto import LoginDTO, UserCreateDTO
 router = APIRouter()
 
 @router.get("/")
-async def get_user():
+async def check():
     return {
         "status": "success",
         "data": "Gọi được user"

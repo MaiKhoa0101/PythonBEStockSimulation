@@ -11,7 +11,6 @@ class UploadEpisode(IUploadEpisode):
     def __init__(self, movie_repository: IMoviesRepository):
         self.movie_repository = movie_repository
 
-
     def _get_base_dir(self) -> str:
         return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
@@ -68,7 +67,6 @@ class UploadEpisode(IUploadEpisode):
         os.makedirs(temp_dir, exist_ok=True)
         temp_path = os.path.join(temp_dir, f"{episode_slug}_goc{file_ext}")
 
-        # SỬA LỖI TẠI ĐÂY: Gắn cả target_dir và relative_db_path theo logic is_short
         if is_short == False:
             target_dir = os.path.join(base_dir, "media", "movie", first_folder, episode_slug, "hls")
             relative_db_path = f"media/movie/{first_folder}/{episode_slug}/hls/index.m3u8"

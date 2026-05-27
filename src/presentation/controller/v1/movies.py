@@ -170,4 +170,5 @@ async def api_upload_episode_video_hls(
         file=file, 
         bg_tasks=bg_tasks
     )
+    print ("Kết quả đường dẫn sau khi upload episode: "+result_path)
     return {"status": "Success", "data": result_path}
