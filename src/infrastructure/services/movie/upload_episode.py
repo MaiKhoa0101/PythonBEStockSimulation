@@ -1,5 +1,6 @@
 import asyncio
 import os
+import uuid
 
 import aiofiles
 from fastapi import BackgroundTasks, HTTPException, UploadFile
@@ -63,22 +64,24 @@ class UploadEpisode(IUploadEpisode):
         file_ext = self._validate_and_get_extension(file.filename)
         base_dir = self._get_base_dir()
 
+        random_id = uuid.uuid4().hex[:8]
+
         temp_dir = os.path.join(base_dir, "media", "temp")
         os.makedirs(temp_dir, exist_ok=True)
         temp_path = os.path.join(temp_dir, f"{episode_slug}_goc{file_ext}")
 
-        if is_short == False:
-            target_dir = os.path.join(base_dir, "media", "movie", first_folder, episode_slug, "hls")
-            relative_db_path = f"media/movie/{first_folder}/{episode_slug}/hls/index.m3u8"
+        if not is_short:
+            target_dir = os.path.join(base_dir, "media", "movie", first_folder, episode_slug, "hls", random_id)
+            relative_db_path = f"media/movie/{first_folder}/{episode_slug}/hls/{random_id}/index.m3u8"
         else:
-            target_dir = os.path.join(base_dir, "media", "short", first_folder, episode_slug, "hls")
-            relative_db_path = f"media/short/{first_folder}/{episode_slug}/hls/index.m3u8"
+            target_dir = os.path.join(base_dir, "media", "short", first_folder, episode_slug, "hls", random_id)
+            relative_db_path = f"media/short/{first_folder}/{episode_slug}/hls/{random_id}/index.m3u8"
 
         os.makedirs(target_dir, exist_ok=True)
 
         await self._write_upload_file(file, temp_path)
         print("Xu ly upload hls")
-        
+
         bg_tasks.add_task(
             self._process_ffmpeg_background,
             temp_path=temp_path,
@@ -89,7 +92,6 @@ class UploadEpisode(IUploadEpisode):
         )
 
         return relative_db_path
-
 
     async def _process_ffmpeg_background(
         self, temp_path: str, target_dir: str, episode_id: str, relative_db_path: str,is_short
