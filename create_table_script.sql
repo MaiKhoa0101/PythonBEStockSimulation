@@ -116,5 +116,4 @@ USE movie_system;
 -- );
 -- SELECT * FROM subscription_packages;
 
-alter table user add column avatar varchar(100) default null;
-select * FROM user;
+select * FROM movie;

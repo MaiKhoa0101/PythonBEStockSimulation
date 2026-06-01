@@ -51,6 +51,7 @@ class UserRepository(IUserRepository):
                 email=user.email,
                 phone_number=user.phone_number,
                 password=user.password,
+                avatar= user.avatar,
                 full_name=user.full_name,
                 is_active=user.is_active,
                 is_verified=user.is_verified,

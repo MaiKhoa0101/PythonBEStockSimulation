@@ -8,6 +8,7 @@ class User:
     id: str = None
     username: str =None
     email: str = None
+    avatar: str = None
     password: str = None
     full_name: str = None   
     phone_number: str = None
