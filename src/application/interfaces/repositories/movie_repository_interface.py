@@ -61,4 +61,8 @@ class IMoviesRepository(Protocol):
         episode_id:str
     ):
         ...
-    
+
+    async def get_url_episode(
+        id_episode:str
+    ):
+        ...

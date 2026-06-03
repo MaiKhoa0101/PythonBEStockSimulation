@@ -19,6 +19,6 @@ class GetListMovies(IGetListMoviesService):
         data = await self.movie_repository.fetch_movies_list()
         if not data:
             data = await self.movie_external_service.fetch_movies_list()
-            if not data: #ko thanh cong
+            if not data: 
                 return None
         return data

@@ -1,10 +1,14 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
+import json
 
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
+from fastapi_cache import FastAPICache
+from fastapi.encoders import jsonable_encoder
 from src.infrastructure.security.security import get_current_user_id
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO
 from src.domain.entities.movies.movie import Movie
-from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie, IPatchMovie, IUpdateEntireMovie, IUploadEpisode
-from src.presentation.controller.dependencies import ICreateMovieDependency, IDeleteMovieDependency, IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency, IPatchMovieDependency, IUpdateEntireMovieDependency, IUploadEpisodeServiceDepedency
+from src.application.interfaces.services.movies_service_interface import IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, ICreateMovie, IGetVideoUrlService, IPatchMovie, IUpdateEntireMovie, IUploadEpisode
+from src.presentation.controller.dependencies import ICreateMovieDependency, IDeleteMovieDependency, IGetListMoviesServiceDependency, IGetMoviesDetailByIdDependency, IGetMoviesDetailByNameDependency, IGetVideoUrlServiceDependency, IPatchMovieDependency, IUpdateEntireMovieDependency, IUploadEpisodeServiceDepedency
+from fastapi_cache.decorator import cache
 
 router = APIRouter()
 
@@ -28,23 +32,36 @@ async def api_get_movie_list(
 @router.get("/name/{name}")
 async def api_get_movie_detail_by_name(
     name: str,
-    current_user_id: str = Depends(get_current_user_id),
+    current_user_id: str = None,
     getMovieByNameService: IGetMoviesDetailByName = Depends(IGetMoviesDetailByNameDependency)
 ):
+    redis_backend = FastAPICache.get_backend()
+    cache_key = f"movie:detail:{name}" 
+
+    cache_movie = await redis_backend.get(cache_key)
+    result = None
+    if cache_movie:
+        result = json.loads(cache_movie)
+        print(f"Lấy từ cache với data {result}")
+    else:    
+        result = await getMovieByNameService.fetch_movie_detail_by_name(name)
+        print(f"Lấy từ service với data {result}")
     
-    # Gọi hàm execute của Query
-    result = await getMovieByNameService.fetch_movie_detail_by_name(name,current_user_id)
-    if result:
-        return{
-            "status":"Success",
-            "data":result
+    if result: 
+        serializable_data = jsonable_encoder(result)
+        
+        await redis_backend.set(cache_key, json.dumps(serializable_data), expire=30)
+        
+        return {
+            "status": "Success",
+            "data": serializable_data 
         }
     else: 
-        return{
-            "status":"Failed",
-            "data":"Tìm không thành công"
+        return {
+            "status": "Failed",
+            "data": "Tìm không thành công"
         }
-
+    
 
 @router.get("/id/{id}")
 async def api_get_movie_detail_by_id(
@@ -87,14 +104,16 @@ async def api_create_movie(
 
 @router.put("/update/{id}")
 async def api_update_movie(
+    background_tasks: BackgroundTasks,
     id:str = Path(...),
     updateMovieDTO: MovieUpdateDTO = ...,
-    updateEntireMovieService : IUpdateEntireMovie = Depends(IUpdateEntireMovieDependency)
+    updateEntireMovieService : IUpdateEntireMovie = Depends(IUpdateEntireMovieDependency),
 ):
     result = await updateEntireMovieService.update_entire_movie(
         id,
         updateMovieDTO
     )
+    background_tasks.add_task(FastAPICache.clear, namespace="movie")
     if result:
         return{
             "status":"Success",
@@ -172,3 +191,18 @@ async def api_upload_episode_video_hls(
     )
     print ("Kết quả đường dẫn sau khi upload episode: "+result_path)
     return {"status": "Success", "data": result_path}
+
+
+@router.get("/episode/{id_episode}")
+async def api_get_episode_url(
+    id_episode:str= Path(...),
+    current_user_id: str = Depends(get_current_user_id),
+    get_episode_url_service: IGetVideoUrlService = Depends(IGetVideoUrlServiceDependency)
+):
+    print("vao toi day")
+    result = await get_episode_url_service.get_video_url(id_episode)
+    print("ket qua lay link la: ",result)
+    return {
+        "status": "Success", 
+        "data": result
+    }

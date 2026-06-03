@@ -10,7 +10,7 @@ class IGetListMoviesService(Protocol):
     async def fetch_movies_list() -> list[Movie]:
         ... 
 class IGetMoviesDetailByName(Protocol):
-    async def fetch_movie_detail_by_name(name: str, current_user_id:str) -> Any:
+    async def fetch_movie_detail_by_name(name: str) -> Any:
         ...
 
 class IGetMoviesDetailById(Protocol):
@@ -31,6 +31,12 @@ class IPatchMovie(Protocol):
 
 class IDeleteMovie(Protocol):
     async def delete_movie_by_id(id:str):
+        ...
+        
+class IGetVideoUrlService(Protocol):
+    async def get_video_url(
+        id_episode:str
+    ):
         ...
 
 class IUploadEpisode(Protocol):

@@ -2,6 +2,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
+from redis.asyncio import Redis
+
 from src.presentation.controller.v1 import short
 from src.presentation.controller.v1 import transaction
 from src.presentation.controller.v1 import subscription, movies,users,collection
@@ -9,9 +13,23 @@ from src.infrastructure.database.session import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
-app = FastAPI()
 
-# Cấu hình CORS
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Đang kết nối tới Máy chủ Redis...")
+
+    redis = Redis.from_url("redis://localhost:6379", encoding="utf8", decode_responses=True)
+    
+    FastAPICache.init(RedisBackend(redis), prefix="app-cache")
+    print("Đã kết nối Redis thành công")
+    
+    yield 
+    
+    await redis.close()
+    print("Đã ngắt kết nối Redis.")
+
+app = FastAPI(lifespan=lifespan)
+
 origins = [
     "*"
 ]
@@ -34,21 +52,6 @@ app.include_router(subscription.router, prefix="/api/v1/subscription")
 app.include_router(transaction.router, prefix="/api/v1/transaction")
 app.include_router(short.router, prefix="/api/v1/shorts")
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    print("⏳ Đang kết nối tới Máy chủ Redis...")
-    # Kết nối tới con Docker Redis đang chạy ở cổng 6379
-    redis = aioredis.from_url("redis://localhost:6379", encoding="utf8", decode_responses=True)
-    
-    # Kích hoạt Cache cho toàn bộ FastAPI
-    FastAPICache.init(RedisBackend(redis), prefix="app-cache")
-    print("✅ Đã kết nối Redis thành công! App sẵn sàng.")
-    
-    yield # Cho phép FastAPI chạy...
-    
-    # Khi bạn tắt server (Ctrl+C), nó sẽ ngắt kết nối an toàn
-    await redis.close()
-    print("🛑 Đã ngắt kết nối Redis.")
 
 @app.get("/")
 def root():

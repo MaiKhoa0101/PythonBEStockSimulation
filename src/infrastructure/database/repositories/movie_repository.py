@@ -38,7 +38,17 @@ class MoviesRepositories(IMoviesRepository):
             MovieModel.slug_name == name,
             MovieModel.is_deleted == False
         ).first()
-        return db_movie
+
+        result = model_to_entity(
+            db_movie,
+            Movie
+        )
+        print("result truoc khi bien doi: ", result.episodes)
+        if result.episodes:
+            for episode in result.episodes:
+                print("Sua episode: ",episode)
+                episode.link_m3u8 = None
+        return result
     
     async def fetch_movie_detail_by_name_no_auth(self, name: str):
         db_movie = self.db.query(MovieModel).options(
@@ -261,3 +271,13 @@ class MoviesRepositories(IMoviesRepository):
         except Exception as e:            
             self.db.rollback()
             raise Exception(f"Lỗi Database: {str(e)}")
+        
+    async def get_url_episode(
+        self,
+        id_episode:str
+    ):
+        db_episode = self.db.query(EpisodeModel).filter(
+            EpisodeModel.id == id_episode
+        ).first()
+        result = db_episode.link_m3u8
+        return result
