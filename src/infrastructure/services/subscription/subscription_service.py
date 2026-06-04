@@ -12,9 +12,7 @@ class SubscriptionService(ISubscriptionService):
     
     async def create_subscription_package(self,subscription_create_dto:SubscriptionCreateDTO):
         subscription = dto_to_entity(subscription_create_dto,Subscription)
-        transaction = await self.transaction_repository.create_transaction()
         result = await self.subscription_repo.create_subscription_packages(subscription_entity=subscription)
-            
         return result
     
     async def get_subscription_package(self, package_id:str):

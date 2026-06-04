@@ -3,6 +3,7 @@ import json
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
 from fastapi_cache import FastAPICache
 from fastapi.encoders import jsonable_encoder
+from src.infrastructure.security.author import RoleChecker
 from src.infrastructure.security.security import get_current_user_id
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO
 from src.domain.entities.movies.movie import Movie
@@ -16,7 +17,6 @@ router = APIRouter()
 async def api_get_movie_list(
     getListMovieService: IGetListMoviesService = Depends(IGetListMoviesServiceDependency)
 ):
-    # Gọi hàm execute của Query
     result = await getListMovieService.fetch_movies_list()
     if result:
         return{
@@ -32,7 +32,6 @@ async def api_get_movie_list(
 @router.get("/name/{name}")
 async def api_get_movie_detail_by_name(
     name: str,
-    current_user_id: str = None,
     getMovieByNameService: IGetMoviesDetailByName = Depends(IGetMoviesDetailByNameDependency)
 ):
     redis_backend = FastAPICache.get_backend()
@@ -50,7 +49,11 @@ async def api_get_movie_detail_by_name(
     if result: 
         serializable_data = jsonable_encoder(result)
         
-        await redis_backend.set(cache_key, json.dumps(serializable_data), expire=30)
+        await redis_backend.set(
+            cache_key, 
+            json.dumps(serializable_data), 
+            expire=10
+        )
         
         return {
             "status": "Success",
@@ -161,6 +164,8 @@ async def api_delete_movie(
             "status":"Failed",
             "data":"Xóa không thành công"
         }
+
+
 @router.post("/upload-video/{movie_slug}/{episode_slug}/{episode_id}")
 async def api_upload_episode_video_local(
     movie_slug: str = Path(...),
@@ -192,11 +197,11 @@ async def api_upload_episode_video_hls(
     print ("Kết quả đường dẫn sau khi upload episode: "+result_path)
     return {"status": "Success", "data": result_path}
 
-
+require_premium = RoleChecker(["admin", "premium"])
 @router.get("/episode/{id_episode}")
 async def api_get_episode_url(
     id_episode:str= Path(...),
-    current_user_id: str = Depends(get_current_user_id),
+    current_user_id: str = Depends(require_premium.check),
     get_episode_url_service: IGetVideoUrlService = Depends(IGetVideoUrlServiceDependency)
 ):
     print("vao toi day")

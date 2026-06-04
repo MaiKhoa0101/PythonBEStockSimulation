@@ -12,6 +12,7 @@ class UserBaseDTO(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     premium_until: Optional[datetime] = None
+    role: str = "user"
 
 class UserCreateDTO(UserBaseDTO):
     password: str

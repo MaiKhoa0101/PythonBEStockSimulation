@@ -116,4 +116,5 @@ USE movie_system;
 -- );
 -- SELECT * FROM subscription_packages;
 
-select * FROM movie;
+-- alter table user add column role varchar(50) default("user");
+select * FROM user;

@@ -16,6 +16,7 @@ class User:
     is_verified: bool = False
     is_deleted: bool = False
     premium_until: str = None
+    role:str = "user"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

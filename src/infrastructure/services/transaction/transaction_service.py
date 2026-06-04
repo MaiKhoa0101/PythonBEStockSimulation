@@ -66,8 +66,8 @@ class TransactionService(ITransactionService):
             else now
         )
         new_premium_until = base_date + timedelta(days=package.duration_days)
-        user_data = UserUpdateDTO(premium_until=new_premium_until)
+        user_data = UserUpdateDTO(role="premium",premium_until=new_premium_until)
         print("KQ sau khi gan: ",user_data)
-        result_update_user  = await self.user_update.update_user(user_id, user_data)
+        await self.user_update.update_user(user_id, user_data)
 
         return saved_transaction

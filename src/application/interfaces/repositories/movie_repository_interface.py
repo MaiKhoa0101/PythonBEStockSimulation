@@ -58,7 +58,7 @@ class IMoviesRepository(Protocol):
         
     async def upload_episode(
         local_path: str,
-        episode_id:str
+        episode_id: str
     ):
         ...
 
