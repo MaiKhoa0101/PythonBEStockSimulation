@@ -7,13 +7,23 @@ from src.presentation.dtos.user_dto import LoginDTO, UserCreateDTO
 
 router = APIRouter()
 
+# @router.get("/{id}")
+# async def fetchUserById(
+#     get_user_service: IGetUserById = Depends(IUserGetByIdDependency)
+# ):
+#     result = await create_user_service..fetch_movies_list()
+
+#     return {
+#         "status": "success",
+#         "data": "Gọi được user"
+#     }
+
 @router.get("/")
 async def check():
     return {
         "status": "success",
         "data": "Gọi được user"
     }
-
 
 @router.post("/signup")
 async def create_user(

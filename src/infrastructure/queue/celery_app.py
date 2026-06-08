@@ -1,0 +1,19 @@
+import os
+
+from celery import Celery
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
+
+celery_instance = Celery(
+    "movie_streaming_worker",
+    broker=CELERY_BROKER_URL,
+    backend=CELERY_RESULT_BACKEND
+)
+
+celery_instance.conf.update(
+    task_serializer="json",
+    result_serializer="json",
+    accept_content=["json"],
+    timezone="Asia/Ho_Chi_Minh",
+    enable_utc=True,
+)

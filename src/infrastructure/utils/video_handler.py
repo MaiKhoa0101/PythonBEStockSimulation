@@ -43,9 +43,6 @@ def _base_url(m3u8_url: str) -> str:
     return m3u8_url.rsplit("/", 1)[0] + "/"
 
 
-# ============================================================
-# DIRECT VIDEO DOWNLOADER
-# ============================================================
  
 async def _download_direct(video_url: str, folder: str) -> str:
     """
@@ -66,10 +63,7 @@ async def _download_direct(video_url: str, folder: str) -> str:
  
     return save_path
  
- 
-# ============================================================
-# VIDEO HANDLER
-# ============================================================
+
  
 class VideoHandler(IVideoHandler):
  

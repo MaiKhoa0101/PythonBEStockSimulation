@@ -166,18 +166,18 @@ async def api_delete_movie(
         }
 
 
-@router.post("/upload-video/{movie_slug}/{episode_slug}/{episode_id}")
-async def api_upload_episode_video_local(
-    movie_slug: str = Path(...),
-    episode_slug: str = Path(...),
-    episode_id: str = Path(...),
-    file: UploadFile = File(...),
-    upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
-):
-    result_path = await upload_service.upload_episode_video_into_local_system_path(
-        movie_slug, episode_slug, episode_id, file
-    )
-    return {"status": "Success", "data": result_path}
+# @router.post("/upload-video/{movie_slug}/{episode_slug}/{episode_id}")
+# async def api_upload_episode_video_local(
+#     movie_slug: str = Path(...),
+#     episode_slug: str = Path(...),
+#     episode_id: str = Path(...),
+#     file: UploadFile = File(...),
+#     upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
+# ):
+#     result_path = await upload_service.upload_episode_video_into_local_system_path(
+#         movie_slug, episode_slug, episode_id, file
+#     )
+#     return {"status": "Success", "data": result_path}
 
 
 @router.post("/upload-video-hls/{movie_slug}/{episode_slug}")

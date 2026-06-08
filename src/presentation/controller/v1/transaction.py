@@ -21,7 +21,7 @@ async def buy_subscription(
 
 
 
-@router.get("/{id}")
+@router.get("/{id}")    
 async def get_transactions_by_id(
     id:str,
     transaction_service: ITransactionService = Depends(ITransactionServiceDependency)

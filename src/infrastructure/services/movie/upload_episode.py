@@ -8,6 +8,7 @@ import ffmpeg
 
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
 from src.application.interfaces.services.movies_service_interface import IUploadEpisode
+
 class UploadEpisode(IUploadEpisode):
     def __init__(self, movie_repository: IMoviesRepository):
         self.movie_repository = movie_repository
