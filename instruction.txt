@@ -4,3 +4,9 @@ venv\Scripts\activate
 
 ########## Cài thư viện:
 pip install -r requirements.txt
+
+########## Khởi động:
+docker-compose up
+
+########## Tắt:
+docker-compose down

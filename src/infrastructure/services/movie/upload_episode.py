@@ -6,6 +6,7 @@ import aiofiles
 from fastapi import BackgroundTasks, HTTPException, UploadFile
 import ffmpeg
 
+from src.infrastructure.celery.hls_task import process_hls_task
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
 from src.application.interfaces.services.movies_service_interface import IUploadEpisode
 
@@ -83,17 +84,25 @@ class UploadEpisode(IUploadEpisode):
         await self._write_upload_file(file, temp_path)
         print("Xu ly upload hls")
 
-        bg_tasks.add_task(
-            self._process_ffmpeg_background,
+
+        # bg_tasks.add_task(
+        #     self._process_ffmpeg_background,
+        #     temp_path=temp_path,
+        #     target_dir=target_dir,
+        #     episode_id=episode_slug,
+        #     relative_db_path=relative_db_path,
+        #     is_short=is_short
+        # )
+        process_hls_task.delay(
             temp_path=temp_path,
             target_dir=target_dir,
             episode_id=episode_slug,
             relative_db_path=relative_db_path,
-            is_short=is_short
+            is_short=is_short,
         )
-
+        print(f"[UploadEpisode] Đã đẩy task HLS vào Celery queue: {relative_db_path}")
         return relative_db_path
-
+    
     async def _process_ffmpeg_background(
         self, temp_path: str, target_dir: str, episode_id: str, relative_db_path: str,is_short
     ):
@@ -117,7 +126,7 @@ class UploadEpisode(IUploadEpisode):
                         capture_stderr=True
                     )
             )
-            if (not is_short):
+            if not is_short:
                 is_updated = await self.movie_repository.upload_episode(
                     episode_id, relative_db_path, is_hls=True  
                 )
