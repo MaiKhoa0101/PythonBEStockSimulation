@@ -7,7 +7,8 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
 celery_instance = Celery(
     "movie_streaming_worker",
     broker=CELERY_BROKER_URL,
-    backend=CELERY_RESULT_BACKEND
+    backend=CELERY_RESULT_BACKEND,
+    include=["src.infrastructure.celery.hls_task"]
 )
 
 celery_instance.conf.update(
