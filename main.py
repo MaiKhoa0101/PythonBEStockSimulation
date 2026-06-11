@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+import redis
 from redis.asyncio import Redis
 
 from src.presentation.controller.v1 import short
@@ -16,16 +18,14 @@ Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Đang kết nối tới Máy chủ Redis...")
-
-    redis = Redis.from_url("redis://localhost:6379", encoding="utf8", decode_responses=True)
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    redis = Redis.from_url(redis_url, encoding="utf8", decode_responses=True)
     
-    FastAPICache.init(RedisBackend(redis), prefix="app-cache")
+    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")  # ← phải trước yield
+    
     print("Đã kết nối Redis thành công")
-    
-    yield 
-    
-    await redis.close()
+    yield
+    await redis.aclose()
     print("Đã ngắt kết nối Redis.")
 
 app = FastAPI(lifespan=lifespan)
