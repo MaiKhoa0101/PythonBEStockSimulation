@@ -21,8 +21,7 @@ async def lifespan(app: FastAPI):
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
     redis = Redis.from_url(redis_url, encoding="utf8", decode_responses=True)
     
-    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")  # ← phải trước yield
-    
+    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")  
     print("Đã kết nối Redis thành công")
     yield
     await redis.aclose()
