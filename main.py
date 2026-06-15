@@ -11,18 +11,17 @@ from src.presentation.controller.v1 import transaction
 from src.presentation.controller.v1 import subscription, movies, users, collection
 from src.infrastructure.database.session import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
+from src.infrastructure.database.redis import redis_pool
 
 Base.metadata.create_all(bind=engine)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    redis_client = AsyncRedis.from_url(redis_url, encoding="utf8", decode_responses=True)  
-
-    FastAPICache.init(RedisBackend(redis_client), prefix="fastapi-cache")
+    FastAPICache.init(RedisBackend(redis_pool), prefix="fastapi-cache")
     print("Đã kết nối Redis thành công")
     yield
-    await redis_client.close()
+    await redis_pool.close()
     print("Đã ngắt kết nối Redis.")
 
 app = FastAPI(lifespan=lifespan)

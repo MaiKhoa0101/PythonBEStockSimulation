@@ -5,6 +5,7 @@ from redis.asyncio import Redis as AsyncRedis
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
 from fastapi_cache import FastAPICache
 from fastapi.encoders import jsonable_encoder
+from src.infrastructure.database.redis import get_redis_client
 from src.infrastructure.security.author import RoleChecker
 from src.infrastructure.security.security import get_current_user_id
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO
@@ -209,16 +210,12 @@ async def api_upload_episode_video_hls(
 async def api_get_episode_url(
     id_episode:str= Path(...),
     current_user_id: str = Depends(require_watchable_role.check),
-    get_episode_url_service: IGetVideoUrlService = Depends(IGetVideoUrlServiceDependency)
+    get_episode_url_service: IGetVideoUrlService = Depends(IGetVideoUrlServiceDependency),
+    redis = Depends(get_redis_client)
 ):
     result = await get_episode_url_service.get_video_url(id_episode)
     print(f"ket qua lay url la {result}")
     if result and result.get("movie_id"):
-        redis = AsyncRedis.from_url(
-            os.getenv("REDIS_URL", "redis://redis:6379/0"),
-            decode_responses=True
-        )
         await redis.incr(f"view:{result['movie_id']}")
-        await redis.close()
 
     return {"status": "Success", "data": result}

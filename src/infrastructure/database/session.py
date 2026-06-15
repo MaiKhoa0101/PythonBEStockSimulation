@@ -4,14 +4,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from dotenv import load_dotenv
 
-
 load_dotenv()
 #lấy url kết nối từ biến môi trường
 SQLALCHEMY_DATABASE_URL= os.getenv("SQLALCHEMY_DATABASE_URL")
 # Khởi tạo engine, echo laf in ra câu lệnh SQL để debug,
 # bind là kết nối engine với session
 engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True) 
-
 
 # Autocommit=False: mỗi lần thực hiện xong 1 câu lệnh 
 # SQL sẽ không tự động commit

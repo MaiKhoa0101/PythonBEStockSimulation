@@ -8,8 +8,11 @@ celery_instance = Celery(
     "movie_streaming_worker",
     broker=CELERY_BROKER_URL,
     backend=CELERY_RESULT_BACKEND,
-    include=["src.infrastructure.celery.hls_task"]
-)
+    include=[
+        "src.infrastructure.celery.hls_task",
+        "src.infrastructure.celery.view_count_task",
+        "src.infrastructure.celery.expire_premium_task",    
+    ])
 
 celery_instance.conf.update(
     task_serializer="json",
@@ -20,7 +23,11 @@ celery_instance.conf.update(
     beat_schedule={
         "sync-view-count": {
             "task": "tasks.sync_view_count",
-            "schedule": 60.0,
+            "schedule": 300.0, 
+        },
+        "expire-premium-users": {
+            "task": "tasks.expire_premium_users",
+            "schedule": 30.0,  
         }
     }
 )
