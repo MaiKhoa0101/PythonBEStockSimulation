@@ -8,7 +8,7 @@ class UserModel(Base):
     __tablename__ = "user"
 
     id = Column(String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
-    avatar = Column(String(100))
+    avatar = Column(String(100),default=None)
     full_name = Column(String(100))
     username = Column(String(50))
     email = Column(String(50))

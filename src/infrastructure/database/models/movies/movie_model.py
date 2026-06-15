@@ -53,14 +53,14 @@ class MovieModel(Base):
     thumb_url = Column(String(500))
     trailer_url = Column(String(500))
 
-    quality = Column(String(50))        # FHD, HD, CAM, ...
-    lang = Column(String(50))           # Vietsub, Thuyết Minh, ...
-    time = Column(String(50))           # "174 phút"
+    quality = Column(String(50))      
+    lang = Column(String(50))         
+    time = Column(String(50))       
     year = Column(Integer)
     view = Column(Integer, default=0)
 
-    episode_current = Column(String(50))    # "Full" | "Tập 12"
-    episode_total = Column(String(50))      # "1" | "24"
+    episode_current = Column(String(50))   
+    episode_total = Column(String(50))     
 
     is_copyright = Column(Boolean, default=False)
     sub_docquyen = Column(Boolean, default=False)

@@ -17,4 +17,10 @@ celery_instance.conf.update(
     accept_content=["json"],
     timezone="Asia/Ho_Chi_Minh",
     enable_utc=True,
+    beat_schedule={
+        "sync-view-count": {
+            "task": "tasks.sync_view_count",
+            "schedule": 60.0,
+        }
+    }
 )

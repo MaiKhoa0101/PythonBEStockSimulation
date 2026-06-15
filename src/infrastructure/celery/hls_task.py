@@ -1,7 +1,7 @@
 import os
 import ffmpeg
-
-from src.infrastructure.database.models.movies.movie_model import EpisodeModel
+from redis import Redis as SyncRedis
+from src.infrastructure.database.models.movies.movie_model import EpisodeModel, MovieModel
 from src.infrastructure.database.session import SessionLocal
 from src.infrastructure.celery.celery_app import celery_instance
 
@@ -33,7 +33,6 @@ def _update_episode_db(episode_id: str, relative_db_path: str) -> bool:
     default_retry_delay=10,
     acks_late=True,
 )
-
 def process_hls_task(
     self,
     temp_path: str,
@@ -83,3 +82,34 @@ def process_hls_task(
         if os.path.exists(temp_path):
             os.remove(temp_path)
             print(f"[HLS Task] Đã xoá file tạm: {temp_path}")
+
+
+
+@celery_instance.task(
+    name="tasks.sync_view_count"
+)
+def sync_view_count():
+    redis_url = os.getenv("CELERY_BROKER_URL")
+    r = SyncRedis.from_url(redis_url, decode_responses = True)
+    db = SessionLocal()
+
+    try:
+        keys = r.keys("view:*")
+        if not keys:
+            return
+
+        for key in keys:
+            movie_id = key.split(":")[1]
+            count = r.getdel(key)
+            if count:
+                db.query(MovieModel).filter(
+                    MovieModel.id == movie_id
+                ).update({MovieModel.view: MovieModel.view + int(count)})
+            db.commit()
+            print(f"Đã sync view với {len(keys)} phim")
+    except Exception as e:
+        db.rollback()
+        print(f"[Sync View] Lỗi: {e}")
+    finally:
+        db.close()
+        r.close()

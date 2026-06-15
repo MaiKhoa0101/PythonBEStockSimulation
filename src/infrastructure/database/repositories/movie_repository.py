@@ -272,12 +272,12 @@ class MoviesRepositories(IMoviesRepository):
             self.db.rollback()
             raise Exception(f"Lỗi Database: {str(e)}")
         
-    async def get_url_episode(
-        self,
-        id_episode:str
-    ):
+    async def get_url_episode(self, id_episode: str):
         db_episode = self.db.query(EpisodeModel).filter(
             EpisodeModel.id == id_episode
         ).first()
-        result = db_episode.link_m3u8
-        return result
+
+        return {
+            "url": db_episode.link_m3u8,
+            "movie_id": db_episode.id_movie
+        }

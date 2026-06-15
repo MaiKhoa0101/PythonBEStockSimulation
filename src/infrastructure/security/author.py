@@ -16,7 +16,9 @@ class RoleChecker:
         current_user_id: str = Depends(get_current_user_id),
         db: Session = Depends(get_db)
     ):
-        user = db.query(UserModel).filter(UserModel.id == current_user_id).first()        
+        user = db.query(UserModel).filter(UserModel.id == current_user_id).first()
+
+        print("check role user: ",user)        
         if user.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

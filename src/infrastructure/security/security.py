@@ -6,8 +6,8 @@ import bcrypt
 import jwt
 
 #lay tu .env
-SECRET_KEY = os.getenv("SK_SECURITY", "default_secret_key")
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("SK_SECURITY")
+ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = 10
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -47,7 +47,7 @@ async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depend
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("user_id")
+        user_id: str = payload.get("id")
         
         if user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token không hợp lệ")

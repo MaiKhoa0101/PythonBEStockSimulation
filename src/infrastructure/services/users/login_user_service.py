@@ -29,13 +29,14 @@ class LoginUser(ILoginUser):
             return None
         
         token_data = {
-            "user_id": str(result.id),
+            "id": str(result.id),
             "full_name":str(result.full_name),
             "username":str(result.username),
             "email":str(result.email),
             "phone_number":str(result.phone_number),
             "premium_until":str(result.premium_until),
             "avatar":str(result.avatar),
+            "role":str(result.role)
         }
         access_token = create_access_token(data=token_data)
         response = ResponseLoginDTO(

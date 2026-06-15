@@ -1,4 +1,6 @@
 import json
+import os
+from redis.asyncio import Redis as AsyncRedis
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
 from fastapi_cache import FastAPICache
@@ -12,6 +14,8 @@ from src.presentation.controller.dependencies import ICreateMovieDependency, IDe
 from fastapi_cache.decorator import cache
 
 router = APIRouter()
+require_watchable_role = RoleChecker(["admin", "premium"])
+require_admin = RoleChecker(["admin"])
 
 @router.get("/")
 async def api_get_movie_list(
@@ -87,6 +91,7 @@ async def api_get_movie_detail_by_id(
 @router.post("/create")
 async def api_create_movie(
     movie_data: MovieCreateDTO,
+    current_user_id: str = Depends(require_admin.check),
     createMovieService: ICreateMovie = Depends(ICreateMovieDependency)
 ):
     result = await createMovieService.create_movie(
@@ -110,6 +115,7 @@ async def api_update_movie(
     background_tasks: BackgroundTasks,
     id:str = Path(...),
     updateMovieDTO: MovieUpdateDTO = ...,
+    current_user_id: str = Depends(require_admin.check),
     updateEntireMovieService : IUpdateEntireMovie = Depends(IUpdateEntireMovieDependency),
 ):
     result = await updateEntireMovieService.update_entire_movie(
@@ -132,6 +138,7 @@ async def api_update_movie(
 async def api_patch_movie(
     id:str = Path(...),
     update_batch_movie: MoviePatchDTO = ...,
+    current_user_id: str = Depends(require_admin.check),
     patchMovieService: IPatchMovie= Depends(IPatchMovieDependency)
 ):
     result = await patchMovieService.patch_movie(id,update_batch_movie)
@@ -150,6 +157,7 @@ async def api_patch_movie(
 @router.delete("/delete-by-id/{id}")
 async def api_delete_movie(
     id:str =Path(...),
+    current_user_id: str = Depends(require_admin.check),
     DeleteMovieService= Depends(IDeleteMovieDependency)
 ):
     result = await DeleteMovieService.delete_movie_by_id(id)
@@ -179,13 +187,13 @@ async def api_delete_movie(
 #     )
 #     return {"status": "Success", "data": result_path}
 
-
 @router.post("/upload-video-hls/{movie_slug}/{episode_slug}")
 async def api_upload_episode_video_hls(
     bg_tasks: BackgroundTasks,
     movie_slug: str = Path(...),
     episode_slug: str = Path(...),
     file: UploadFile = File(...),
+    current_user_id: str = Depends(require_admin.check),
     upload_service: IUploadEpisode = Depends(IUploadEpisodeServiceDepedency)
 ):
     result_path = await upload_service.upload_episode_video_hls(
@@ -197,17 +205,20 @@ async def api_upload_episode_video_hls(
     print ("Kết quả đường dẫn sau khi upload episode: "+result_path)
     return {"status": "Success", "data": result_path}
 
-require_premium = RoleChecker(["admin", "premium"])
 @router.get("/episode/{id_episode}")
 async def api_get_episode_url(
     id_episode:str= Path(...),
-    current_user_id: str = Depends(require_premium.check),
+    current_user_id: str = Depends(require_watchable_role.check),
     get_episode_url_service: IGetVideoUrlService = Depends(IGetVideoUrlServiceDependency)
 ):
-    print("vao toi day")
     result = await get_episode_url_service.get_video_url(id_episode)
-    print("ket qua lay link la: ",result)
-    return {
-        "status": "Success", 
-        "data": result
-    }
+    print(f"ket qua lay url la {result}")
+    if result and result.get("movie_id"):
+        redis = AsyncRedis.from_url(
+            os.getenv("REDIS_URL", "redis://redis:6379/0"),
+            decode_responses=True
+        )
+        await redis.incr(f"view:{result['movie_id']}")
+        await redis.close()
+
+    return {"status": "Success", "data": result}

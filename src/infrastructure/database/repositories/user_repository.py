@@ -33,17 +33,20 @@ class UserRepository(IUserRepository):
         return user 
     
     async def get_user_by_id(self, user_id: str) -> User:
-        db_user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
+        print (f"Tim user voi id: {user_id}")
+        db_user =  self.db.query(UserModel).filter(UserModel.id == user_id).first()
         if not db_user:
+            print("tim ko co user")
             return None
         user =model_to_entity(
             db_user,
             User
         )
         return user
+        
     
     async def get_user_by_email(self, email: str) -> User:
-        user = self.db.query(UserModel).filter(UserModel.email == email).first()
+        user =  self.db.query(UserModel).filter(UserModel.email == email).first()
         if user:
             return User(
                 id=user.id,
@@ -56,7 +59,8 @@ class UserRepository(IUserRepository):
                 is_active=user.is_active,
                 is_verified=user.is_verified,
                 created_at=user.created_at,
-                updated_at=user.updated_at
+                updated_at=user.updated_at,
+                role= user.role
             )
         return None
     

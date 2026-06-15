@@ -69,6 +69,21 @@ services:
       - redis
     networks:
       - app_network
+
+  beat:
+    build: .
+    command: celery -A src.infrastructure.celery.celery_app.celery_instance beat --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - app_network
+
+
+
 networks:
   app_network:
     driver: bridge

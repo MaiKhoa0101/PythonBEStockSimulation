@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 
-from src.application.interfaces.services.users_service_interface import ICreateUserService, ILoginUser
-from src.presentation.controller.dependencies import ICreateUserDependency, ILoginUserDependency
+from src.infrastructure.security.security import create_access_token
+from src.application.interfaces.services.users_service_interface import ICreateUserService, IGetUserById, ILoginUser
+from src.presentation.controller.dependencies import ICreateUserDependency, ILoginUserDependency, IUserGetByIdDependency
 from src.presentation.dtos.user_dto import LoginDTO, UserCreateDTO
 
 
@@ -56,4 +57,56 @@ async def login_user(
     return {
         "status": "success",
         "data": result
+    }
+
+@router.get("/get_by_id_for_self/{id}")
+async def get_user_by_id_for_self(
+    id: str,
+    get_user_by_id: IGetUserById = Depends(IUserGetByIdDependency)
+):
+    print("Giá trị thô nhận được là:", id)    
+    result = await get_user_by_id.get_user_by_id_for_self(user_id=id)
+    token_data = {
+            "id": str(result.id),
+            "full_name":str(result.full_name),
+            "username":str(result.username),
+            "email":str(result.email),
+            "phone_number":str(result.phone_number),
+            "premium_until":str(result.premium_until),
+            "avatar":str(result.avatar),
+            "role":str(result.role)
+        }
+    access_token = create_access_token(data=token_data)
+
+    if result is None:
+        return {
+            "status": "error",
+            "data": "Login failed"
+        }
+    return {
+        "status": "success",
+        "data": {
+            "token" : access_token,
+            "user" :result
+
+        }
+    }
+
+@router.get("/get_by_id/{id}")
+async def get_user_by_id(
+    id: str,
+    get_user_by_id: IGetUserById = Depends(IUserGetByIdDependency)
+):
+    result = await get_user_by_id.get_user_by_id(id)
+
+    if result is None:
+        return {
+            "status": "error",
+            "data": "Login failed"
+        }
+    return {
+        "status": "success",
+        "data": result
+
+        
     }
