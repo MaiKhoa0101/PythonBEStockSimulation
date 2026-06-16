@@ -5,7 +5,7 @@ from datetime import datetime
 
 class UserBaseDTO(BaseModel):
     username: str = None
-    email: str =None
+    email: str = None
     avatar: str | None = None
     phone_number: str =None
     full_name: str =None

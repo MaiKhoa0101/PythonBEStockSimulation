@@ -11,12 +11,14 @@ class GetUserById (IGetUserById):
         self.user_repository=user_repository
     async def get_user_by_id_for_self(self,user_id):
         response = await self.user_repository.get_user_by_id(user_id) 
+        print(f"Kết qả lấy user by id ${response}")
         result = entity_to_dto(
             response,
             UserResponseDTO
         )
         print("k qua la get by id:",result)
         return result  
+    
     async def get_user_by_id(self,user_id):
         response =  await self.user_repository.get_user_by_id(user_id)
         result = entity_to_dto(
