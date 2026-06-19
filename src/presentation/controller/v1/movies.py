@@ -1,7 +1,8 @@
 import json
 import os
 from redis.asyncio import Redis as AsyncRedis
-
+from src.infrastructure.elasticsearch.search import search_movies
+from src.infrastructure.celery.elastic_task_movie import sync_movie_to_es, delete_movie_from_es, task_bulk_sync_all_movies_to_es
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
 from fastapi_cache import FastAPICache
 from fastapi.encoders import jsonable_encoder
@@ -33,6 +34,23 @@ async def api_get_movie_list(
             "status":"Failed",
             "data":"Lấy danh sách không thành công"
         }
+
+@router.get("/search")
+async def api_search_movies(
+    q: str,
+):
+    if not q or not q.strip():
+        return {"status": "Failed", "data": "Vui lòng nhập từ khóa tìm kiếm"}
+
+    result = search_movies(q.strip())
+    return {
+        "status": "Success",
+        "data": result
+    }
+
+@router.get("/sync_movie")
+async def api_sync_movie():
+    task_bulk_sync_all_movies_to_es.delay()
 
 @router.get("/name/{name}")
 async def api_get_movie_detail_by_name(
@@ -100,6 +118,7 @@ async def api_create_movie(
     )
     print(f"result create: {result}")
     if result:
+        sync_movie_to_es.delay(result.id)
         return{
             "status":"Success",
             "data":result
@@ -125,6 +144,7 @@ async def api_update_movie(
     )
     background_tasks.add_task(FastAPICache.clear, namespace="movie")
     if result:
+        sync_movie_to_es.delay(id)
         return{
             "status":"Success",
             "data":result
@@ -164,6 +184,7 @@ async def api_delete_movie(
     result = await DeleteMovieService.delete_movie_by_id(id)
     
     if result:
+        delete_movie_from_es.delay(id)
         return{
             "status":"Success",
             "data":result
@@ -219,3 +240,4 @@ async def api_get_episode_url(
         await redis.incr(f"view:{result['movie_id']}")
 
     return {"status": "Success", "data": result}
+

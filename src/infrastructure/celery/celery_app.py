@@ -11,7 +11,8 @@ celery_instance = Celery(
     include=[
         "src.infrastructure.celery.hls_task",
         "src.infrastructure.celery.view_count_task",
-        "src.infrastructure.celery.expire_premium_task",    
+        "src.infrastructure.celery.expire_premium_task",   
+        "src.infrastructure.celery.elastic_task_movie", 
     ])
 
 celery_instance.conf.update(
@@ -27,7 +28,8 @@ celery_instance.conf.update(
         },
         "expire-premium-users": {
             "task": "tasks.expire_premium_users",
-            "schedule": 30.0,  
+            "schedule": 300.0,  
         }
+        
     }
 )

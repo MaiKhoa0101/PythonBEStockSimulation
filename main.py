@@ -4,8 +4,9 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
-from redis.asyncio import Redis as AsyncRedis  # ← đổi tên import
+from redis.asyncio import Redis as AsyncRedis
 
+from src.infrastructure.elasticsearch.es_client import create_movie_index
 from src.presentation.controller.v1 import short
 from src.presentation.controller.v1 import transaction
 from src.presentation.controller.v1 import subscription, movies, users, collection
@@ -20,6 +21,7 @@ Base.metadata.create_all(bind=engine)
 async def lifespan(app: FastAPI):
     FastAPICache.init(RedisBackend(redis_pool), prefix="fastapi-cache")
     print("Đã kết nối Redis thành công")
+    create_movie_index()
     yield
     await redis_pool.close()
     print("Đã ngắt kết nối Redis.")

@@ -16,6 +16,7 @@ class RoleChecker:
         current_user_id: str = Depends(get_current_user_id),
         db: Session = Depends(get_db)
     ):
+        print(f"user id lay duoc cho author la: {current_user_id}")
         user = db.query(UserModel).filter(UserModel.id == current_user_id).first()
 
         print("check role user: ",user)        

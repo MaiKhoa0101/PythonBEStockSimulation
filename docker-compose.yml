@@ -37,9 +37,11 @@ services:
       - .env
     depends_on:
       mysql:
-        condition: service_healthy    # ← chờ MySQL healthy mới khởi động
+        condition: service_healthy
       redis:
         condition: service_started
+      elasticsearch:
+        condition: service_healthy
     networks:
       - app_network
 
@@ -81,8 +83,24 @@ services:
       - redis
     networks:
       - app_network
-
-
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\"' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
 
 networks:
   app_network:
@@ -90,4 +108,4 @@ networks:
 
 volumes:
   mysql_data:
-
+  es_data:

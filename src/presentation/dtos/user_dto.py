@@ -7,8 +7,8 @@ class UserBaseDTO(BaseModel):
     username: str = None
     email: str = None
     avatar: str | None = None
-    phone_number: str =None
-    full_name: str =None
+    phone_number: str = None
+    full_name: str = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     premium_until: Optional[datetime] = None
