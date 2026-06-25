@@ -12,7 +12,7 @@ celery_instance = Celery(
         "src.infrastructure.celery.hls_task",
         "src.infrastructure.celery.view_count_task",
         "src.infrastructure.celery.expire_premium_task",   
-        "src.infrastructure.celery.elastic_task_movie", 
+        "src.infrastructure.celery.elastic_task_movie"
     ])
 
 celery_instance.conf.update(

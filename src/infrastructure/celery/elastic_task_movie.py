@@ -4,7 +4,7 @@ from src.infrastructure.database.session import SessionLocal
 from src.infrastructure.database.models.movies.movie_model import MovieModel
 from src.infrastructure.celery.celery_app import celery_instance
 from elasticsearch.helpers import bulk
-
+from sqlalchemy.orm import subqueryload
 
 def _build_movie_document(movie: MovieModel) -> dict:
     return {
@@ -29,9 +29,8 @@ def _build_movie_document(movie: MovieModel) -> dict:
         "chieurap":     movie.chieurap, 
     }
 
-@celery_instance.task(name="tasks.sync_movie_to_es")
+@celery_instance.task(name="tasks.sync_movie_to_es", queue="light_queue")
 def sync_movie_to_es(movie_id: str):
-    """Đẩy 1 phim từ MySQL lên Elasticsearch. Gọi khi create/update."""
     db = SessionLocal()
     try:
         movie = db.query(MovieModel).filter(MovieModel.id == movie_id).first()
@@ -49,19 +48,44 @@ def sync_movie_to_es(movie_id: str):
     finally:
         db.close()
 
-@celery_instance.task(name="tasks.bulk_sync_all_movies_to_es")
+@celery_instance.task(name="tasks.bulk_sync_all_movies_to_es",queue="light_queue")
 def task_bulk_sync_all_movies_to_es():
     db = SessionLocal()
     try:
-        movies = db.query(MovieModel).filter(MovieModel.is_deleted == False).all()
+        movies = (
+            db.query(MovieModel)
+            .filter(MovieModel.is_deleted == False)
+            .options(
+                subqueryload(MovieModel.actors),
+                subqueryload(MovieModel.directors),
+                subqueryload(MovieModel.categories),
+                subqueryload(MovieModel.countries),
+                subqueryload(MovieModel.episodes) 
+            )
+            .all()
+        )
 
         if not movies:
             return "Không có dữ liệu phim để đồng bộ."
 
         actions = []
         for movie in movies:
+            episodes_data = [
+                {
+                    "id":           str(ep.id),
+                    "name_episode": ep.name_episode,
+                    "slug":         ep.slug,
+                    "filename":     ep.filename,
+                    "link_embed":   ep.link_embed,
+                    "link_m3u8":    ep.link_m3u8,
+                    "server_name":  ep.server_name,
+                    "description":  ep.description
+                }
+                for ep in movie.episodes
+            ]
+
             doc = {
-                "_index": "movies",
+                "_index": MOVIE_INDEX,
                 "_id": str(movie.id),
                 "_source": {
                     "id":           str(movie.id),
@@ -79,10 +103,13 @@ def task_bulk_sync_all_movies_to_es():
                     "lang":         movie.lang,
                     "is_series":    movie.is_series,
                     "chieurap":     movie.chieurap,
-                    "actors":       [a.name for a in movie.actors],      # ← list thay vì string
+                    
+                    "actors":       [a.name for a in movie.actors],      
                     "directors":    [d.name for d in movie.directors],
                     "categories":   [c.name for c in movie.categories],
                     "countries":    [co.name for co in movie.countries],
+                    
+                    "episodes":     episodes_data
                 }
             }
             actions.append(doc)
@@ -96,7 +123,7 @@ def task_bulk_sync_all_movies_to_es():
     finally:
         db.close()
 
-@celery_instance.task(name="tasks.delete_movie_from_es")
+@celery_instance.task(name="tasks.delete_movie_from_es",queue="light_queue")
 def delete_movie_from_es(movie_id: str):
     """Xóa 1 phim khỏi Elasticsearch. Gọi khi xóa phim hoặc set is_deleted."""
     try:

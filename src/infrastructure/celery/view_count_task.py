@@ -7,7 +7,8 @@ from src.infrastructure.celery.celery_app import celery_instance
 
 
 @celery_instance.task(
-    name="tasks.sync_view_count"
+    name="tasks.sync_view_count",
+    queue = "light_queue"
 )
 def sync_view_count():
     redis_url = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")

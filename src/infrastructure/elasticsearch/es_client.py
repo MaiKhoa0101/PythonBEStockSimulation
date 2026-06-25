@@ -40,10 +40,23 @@ MOVIE_INDEX_MAPPING = {
             "lang":         {"type": "keyword"},   
             "is_series":    {"type": "boolean"},  
             "chieurap":     {"type": "boolean"}, 
+            
+            "episodes": {
+                "type": "nested",
+                "properties": {
+                    "id":           {"type": "keyword"},
+                    "name_episode": {"type": "text", "analyzer": "vi_analyzer"},
+                    "slug":         {"type": "keyword"},
+                    "filename":     {"type": "keyword"},
+                    "link_embed":   {"type": "keyword"},
+                    "link_m3u8":    {"type": "keyword"},
+                    "server_name":  {"type": "keyword"},
+                    "description":  {"type": "text", "analyzer": "vi_analyzer"}
+                }
+            }
         }
     }
 }
-
 
 def create_movie_index():
     if not es_client.indices.exists(index=MOVIE_INDEX):
@@ -51,3 +64,4 @@ def create_movie_index():
         print(f"[Elasticsearch] Đã tạo index '{MOVIE_INDEX}'")
     else:
         print(f"[Elasticsearch] Index '{MOVIE_INDEX}' đã tồn tại")
+

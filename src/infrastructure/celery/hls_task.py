@@ -30,6 +30,7 @@ def _update_episode_db(episode_id: str, relative_db_path: str) -> bool:
     max_retries=3,
     default_retry_delay=10,
     acks_late=True,
+    queue="heavy_queue"
 )
 def process_hls_task(
     self,

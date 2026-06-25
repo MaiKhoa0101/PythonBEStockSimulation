@@ -1,4 +1,3 @@
-from redis import Redis as SyncRedis
 from src.infrastructure.database.models.users.user_model import UserModel
 from src.infrastructure.database.models.movies.movie_model import EpisodeModel, MovieModel
 from src.infrastructure.database.session import SessionLocal
@@ -6,7 +5,7 @@ from src.infrastructure.celery.celery_app import celery_instance
 from datetime import datetime
 
 
-@celery_instance.task(name="tasks.expire_premium_users")
+@celery_instance.task(name="tasks.expire_premium_users",queue="light_queue")
 def expire_premium_users():
     db = SessionLocal()
     try:
