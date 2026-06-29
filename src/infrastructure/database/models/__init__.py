@@ -9,6 +9,7 @@ from src.infrastructure.database.models.imdb.imdb import MovieExternalIdsModel
 from src.infrastructure.database.models.directors.director import DirectorModel
 from src.infrastructure.database.models.categories.categories import CategoryModel
 from src.infrastructure.database.models.country.country import CountryModel
+from src.infrastructure.database.models.celery_task_log.celery_task_log import CeleryTaskLog
 from src.infrastructure.database.models.users.user_model import UserModel
 from src.infrastructure.database.models.movie_collection.movie_collection_model import CollectionModel, CollectionItemModel
 from src.infrastructure.database.models.subscription.subscription_model import SubscriptionPackageModel
