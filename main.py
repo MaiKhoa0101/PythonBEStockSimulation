@@ -6,6 +6,7 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis.asyncio import Redis as AsyncRedis
 
+from src.presentation.controller.v1 import log_controller
 from src.infrastructure.elasticsearch.es_client import create_movie_index
 from src.presentation.controller.v1 import short
 from src.presentation.controller.v1 import transaction
@@ -47,6 +48,7 @@ app.include_router(collection.router, prefix="/api/v1/collection")
 app.include_router(subscription.router, prefix="/api/v1/subscription")
 app.include_router(transaction.router, prefix="/api/v1/transaction")
 app.include_router(short.router, prefix="/api/v1/shorts")
+app.include_router(log_controller.router, prefix="/api/v1/logs", tags=["Logs"])
 
 @app.get("/")
 def root():

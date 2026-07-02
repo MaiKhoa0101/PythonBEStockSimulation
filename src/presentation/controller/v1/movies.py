@@ -1,6 +1,4 @@
 # src/presentation/controller/movie_controller.py
-
-
 import asyncio
 import json
 
@@ -8,6 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi_cache import FastAPICache
 
+from src.infrastructure.services.logs.admin_log_service import write_audit_log
 from src.application.interfaces.services.movies_service_interface import (
     ICreateMovie,
     IDeleteMovie,
@@ -142,6 +141,13 @@ async def api_create_movie(
     result = await createMovieService.create_movie(movie_data)
     if result:
         celery_instance.send_task(_TASK_SYNC_MOVIE, args=[result.id])
+        write_audit_log(                     
+            action="CREATE",
+            admin_id=current_user_id,
+            movie_id=result.id,
+            movie_title=result.name,
+            new_values={"name": result.name, "slug": result.slug_name},
+        )
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Tạo không thành công"}
 
@@ -156,9 +162,21 @@ async def api_update_movie(
 ):
     result = await updateEntireMovieService.update_entire_movie(id, updateMovieDTO)
     if result:
-        # Thứ tự: 1) response gửi đi  2) BackgroundTask xóa cache  3) Celery sync ES
-        background_tasks.add_task(_evict_cache, f"movie:detail:{result.slug_name}")
-        celery_instance.send_task(_TASK_SYNC_MOVIE, args=[id])
+        cache_key = f"movie:detail:{result.slug_name}"
+        background_tasks.add_task(_evict_cache, cache_key)
+
+        write_audit_log(                  
+            action="UPDATE",
+            admin_id=current_user_id,
+            movie_id=result.id,
+            movie_title=result.name,
+            new_values={"name": result.name, "slug": result.slug_name},
+        )
+        celery_instance.send_task(
+            "tasks.sync_movie", 
+            args=[result.id, cache_key],
+            queue="light_queue"
+        )
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Update không thành công"}
 
@@ -175,6 +193,14 @@ async def api_patch_movie(
     if result:
         background_tasks.add_task(_evict_cache, f"movie:detail:{result.slug_name}")
         celery_instance.send_task(_TASK_SYNC_MOVIE, args=[id])
+
+        write_audit_log(                    
+            action="PATCH",
+            admin_id=current_user_id,
+            movie_id=result.id,
+            movie_title=result.name,
+            new_values={"name": result.name, "slug": result.slug_name},
+        )
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Update không thành công"}
 
@@ -187,6 +213,14 @@ async def api_delete_movie(
     deleteMovieService: IDeleteMovie = Depends(IDeleteMovieDependency),
 ):
     result = await deleteMovieService.delete_movie_by_id(id)
+
+    write_audit_log(                    
+        action="DELETE",
+        admin_id=current_user_id,
+        movie_id=result.id,
+        movie_title=result.name,
+        new_values={"name": result.name, "slug": result.slug_name},
+    )
     if result:
         background_tasks.add_task(_evict_cache, f"movie:detail:{result.slug_name}")
         celery_instance.send_task(_TASK_DEL_MOVIE, args=[id])

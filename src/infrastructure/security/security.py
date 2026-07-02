@@ -8,7 +8,7 @@ import jwt
 #lay tu .env
 SECRET_KEY = os.getenv("SK_SECURITY")
 ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = 10
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
 

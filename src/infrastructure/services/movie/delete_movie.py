@@ -9,7 +9,7 @@ class DeleteMovie(IDeleteMovie):
         movie_repository: IMoviesRepository
     ):
         self.movie_repository = movie_repository
-    
+
     async def delete_movie_by_id(self,id):
         result = await self.movie_repository.delete_movie_by_id(id)
 

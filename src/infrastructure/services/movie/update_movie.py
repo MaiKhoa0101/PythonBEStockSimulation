@@ -7,7 +7,7 @@ from src.application.interfaces.services.movies_service_interface import IUpdate
 class UpdateEntireMovie(IUpdateEntireMovie):
     def __init__(self, movie_repository: IMoviesRepository):
         self.movie_repository = movie_repository
-
+    
     async def update_entire_movie(self, id: str, movie_data):
         existing_movie = await self.movie_repository.fetch_movie_detail_by_id(id)
         if not existing_movie:

@@ -2,6 +2,9 @@
 
 from fastapi import Depends
 
+from src.application.interfaces.services.log_service_interface import ILogService
+from src.infrastructure.services.logs.log_service import LogService
+from src.infrastructure.database.repositories.log_repository import LogRepository
 from src.infrastructure.services.movie.get_video_url import GetVideoUrlService
 from src.application.interfaces.services.short_service_interface import IShortService
 from src.infrastructure.services.short.short_service import ShortService
@@ -62,6 +65,9 @@ def ITransactionRepositoryDependency(db:Session = Depends(get_db)):
 
 def IShortRepositoryDependency(db:Session = Depends(get_db)):
     return ShortRepository(db=db)
+
+def ILogRepositoryDependency(db:Session = Depends(get_db)):
+    return LogRepository(db=db)
 
 #=================================================ok
 # Bơm phụ thuộc
@@ -207,4 +213,11 @@ def IShortServiceDependency(
 )-> IShortService:
     return ShortService(
         short_repository = short_repository
+    )
+
+def ILogServiceDependency(
+    log_repository:ILogRepositoryDependency = Depends(ILogRepositoryDependency)
+)-> ILogService:
+    return LogService(
+        log_repository = log_repository
     )

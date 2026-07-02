@@ -14,7 +14,7 @@ from src.infrastructure.database.utils.mapping import dto_to_entity
 class CreateMovie(ICreateMovie):
     def __init__(self, movie_repository: IMoviesRepository):
         self.movie_repository = movie_repository
-
+    
     async def create_movie(self, movie_data: MovieCreateDTO):
         episode_entities = [
             dto_to_entity(ep, Episode, overrides={"id": "", "id_movie": ""})
