@@ -64,7 +64,6 @@ async def get_user_by_id_for_self(
     id: str,
     get_user_by_id: IGetUserById = Depends(IUserGetByIdDependency)
 ):
-    print("Giá trị thô nhận được là:", id)    
     result = await get_user_by_id.get_user_by_id_for_self(user_id=id)
     token_data = {
             "id": str(result.id),

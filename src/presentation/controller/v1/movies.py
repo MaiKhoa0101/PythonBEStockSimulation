@@ -79,7 +79,7 @@ async def api_get_movie_list_home():
     result = fetch_movies_list_home_from_es(page=1, size=20)
     if result:
         serializable_data = jsonable_encoder(result)
-        _warm_cache(cache_key, serializable_data, expire=120)   # ← asyncio.create_task bên trong
+        _warm_cache(cache_key, serializable_data, expire=120)  
         return {"status": "Success", "data": serializable_data}
 
     return {"status": "Failed", "data": "Lấy danh sách không thành công"}

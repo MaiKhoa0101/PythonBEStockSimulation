@@ -29,7 +29,6 @@ def get_password_hash(password: str) -> str:
 def create_access_token(data: dict):
     to_encode = data.copy()
     
-    # [ĐÃ SỬA] Dùng timezone.utc thay vì utcnow() để chuẩn giờ quốc tế tuyệt đối
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire}) 

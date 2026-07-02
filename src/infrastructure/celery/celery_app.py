@@ -33,7 +33,7 @@ celery_instance.conf.update(
         },
         "reconcile-db-to-es-every-night": {
             "task": "tasks.reconcile_movie_data",
-            "schedule": crontab(hour=2, minute=0), # Đều đặn 2h00 sáng mỗi ngày
+            "schedule": 120, # crontab(hour=16, minute=7),
             "options": {"queue": "light_queue"} 
         },
         

@@ -2,6 +2,10 @@
 
 from fastapi import Depends
 
+from src.application.interfaces.repositories.admin_log_repository_interface import IAdminLogRepository
+from src.application.interfaces.services.admin_log_service_interface import IAdminLogService
+from src.infrastructure.database.repositories.admin_log_repository import AdminLogRepository
+from src.infrastructure.services.logs.admin_log_service import AdminLogService
 from src.application.interfaces.services.log_service_interface import ILogService
 from src.infrastructure.services.logs.log_service import LogService
 from src.infrastructure.database.repositories.log_repository import LogRepository
@@ -69,6 +73,9 @@ def IShortRepositoryDependency(db:Session = Depends(get_db)):
 def ILogRepositoryDependency(db:Session = Depends(get_db)):
     return LogRepository(db=db)
 
+def IAdminLogRepositoryDependency(db: Session = Depends(get_db)) -> IAdminLogRepository:
+    return AdminLogRepository(db=db)
+ 
 #=================================================ok
 # Bơm phụ thuộc
 def IGetListMoviesServiceDependency(
@@ -221,3 +228,9 @@ def ILogServiceDependency(
     return LogService(
         log_repository = log_repository
     )
+
+def IAdminLogServiceDependency(
+    repository: IAdminLogRepository = Depends(IAdminLogRepositoryDependency),
+) -> IAdminLogService:
+    return AdminLogService(admin_log_repository=repository)
+ 

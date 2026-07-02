@@ -33,7 +33,6 @@ class UserRepository(IUserRepository):
         return user 
     
     async def get_user_by_id(self, user_id: str) -> User:
-        print (f"Tim user voi id: {user_id}")
         db_user =  self.db.query(UserModel).filter(UserModel.id == user_id).first()
         if not db_user:
             print("tim ko co user")

@@ -7,9 +7,7 @@ import traceback as tb_module
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, Optional
-from fastapi_cache import FastAPICache
-from redis.asyncio import Redis as AsyncRedis
-from fastapi_cache.backends.redis import RedisBackend
+
 from celery.signals import task_failure, task_prerun, task_retry, task_success, worker_process_init
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -22,8 +20,8 @@ _engine = create_engine(
     os.getenv("SQLALCHEMY_DATABASE_URL"),
     pool_size=5,
     max_overflow=10,
-    pool_pre_ping=True,   
-    pool_recycle=1800,  
+    pool_pre_ping=True,
+    pool_recycle=1800,
     echo=False,
 )
 
@@ -42,7 +40,9 @@ def _session_ctx():
         session.rollback()
         raise
     finally:
-        _ScopedSession.remove() 
+        _ScopedSession.remove()
+
+
 def _to_json(value: Any) -> Optional[str]:
     if value is None:
         return None
@@ -51,6 +51,17 @@ def _to_json(value: Any) -> Optional[str]:
     except Exception:
         return str(value)
 
+
+# ── Worker lifecycle ──────────────────────────────────────────────────────────
+
+@worker_process_init.connect
+def on_worker_process_init(**kwargs):
+
+    _engine.dispose()
+    logger.info("[Signal] Worker process init — engine disposed, fresh pool ready")
+
+
+# ── Task signals ──────────────────────────────────────────────────────────────
 
 @task_prerun.connect
 def on_task_prerun(sender, task_id: str, task, args: tuple, kwargs: dict, **_):
@@ -81,7 +92,6 @@ def on_task_prerun(sender, task_id: str, task, args: tuple, kwargs: dict, **_):
 
 @task_success.connect
 def on_task_success(sender, result: Any, **_):
-    """task_success không cấp task_id trực tiếp — lấy từ sender.request."""
     task_id = getattr(sender.request, "id", None)
     if not task_id:
         return
@@ -98,7 +108,6 @@ def on_task_success(sender, result: Any, **_):
 @task_failure.connect
 def on_task_failure(sender, task_id: str, exception: Exception,
                     args: tuple, kwargs: dict, traceback, einfo, **_):
-    """Ghi FAILURE + toàn bộ stack trace."""
     error_str = str(einfo) if einfo is not None else tb_module.format_exc()
     try:
         with _session_ctx() as session:
@@ -136,12 +145,3 @@ def on_task_retry(sender, request, reason, einfo, **_):
                 log.updated_at  = datetime.now(timezone.utc)
     except Exception:
         logger.exception("[Signal] retry error — task_id=%s", task_id)
-
-
-@worker_process_init.connect
-def on_worker_process_init(**kwargs):
-
-    print("⚡ [Hạ tầng Worker] Tiến trình Worker đã mở mắt! Khởi tạo FastAPICache toàn cục...")
-    redis_url = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
-    redis_client = AsyncRedis.from_url(redis_url)
-    FastAPICache.init(RedisBackend(redis_client), prefix="fastapi-cache")

@@ -10,6 +10,7 @@ from src.infrastructure.database.session import Base
 class AdminAction(str, enum.Enum):
     CREATE = "CREATE"
     UPDATE = "UPDATE"
+    PATCH = "PATCH"
     DELETE = "DELETE"
 
 
