@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import enum
 import uuid
 
@@ -25,7 +26,6 @@ class AdminActionLog(Base):
     movie_title  = Column(String(255), nullable=True,    comment="Tên phim tại thời điểm thao tác, lưu để hiển thị dễ đọc")
     old_values   = Column(Text,        nullable=True,    comment="JSON — trạng thái dữ liệu TRƯỚC khi thao tác")
     new_values   = Column(Text,        nullable=True,    comment="JSON — trạng thái dữ liệu SAU khi thao tác")
-    created_at   = Column(DateTime,    nullable=False,   server_default=func.now())
-
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     def __repr__(self):
         return f"<AdminActionLog action={self.action!r} movie={self.movie_id!r} by={self.admin_id!r}>"

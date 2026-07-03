@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import (
     Boolean, Column, String, DateTime, ForeignKey,
     Integer, Float, Table
@@ -28,9 +30,9 @@ class EpisodeModel(Base):
     server_name = Column(String(100))
     description = Column(String(500))
 
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     created_by = Column(String(50))
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    updated_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     updated_by = Column(String(50))
 
     movie = relationship("MovieModel", back_populates="episodes")

@@ -146,7 +146,7 @@ async def api_create_movie(
             admin_id=current_user_id,
             movie_id=result.id,
             movie_title=result.name,
-            new_values={"name": result.name, "slug": result.slug_name},
+            new_values=movie_data.model_dump()
         )
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Tạo không thành công"}
@@ -165,12 +165,12 @@ async def api_update_movie(
         cache_key = f"movie:detail:{result.slug_name}"
         background_tasks.add_task(_evict_cache, cache_key)
 
-        write_audit_log(                  
+        write_audit_log(                     
             action="UPDATE",
             admin_id=current_user_id,
             movie_id=result.id,
             movie_title=result.name,
-            new_values={"name": result.name, "slug": result.slug_name},
+            new_values=updateMovieDTO.model_dump()
         )
         celery_instance.send_task(
             "tasks.sync_movie", 
@@ -194,12 +194,12 @@ async def api_patch_movie(
         background_tasks.add_task(_evict_cache, f"movie:detail:{result.slug_name}")
         celery_instance.send_task(_TASK_SYNC_MOVIE, args=[id])
 
-        write_audit_log(                    
+        write_audit_log(                     
             action="PATCH",
             admin_id=current_user_id,
             movie_id=result.id,
             movie_title=result.name,
-            new_values={"name": result.name, "slug": result.slug_name},
+            new_values=update_batch_movie.model_dump()
         )
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Update không thành công"}
@@ -214,12 +214,12 @@ async def api_delete_movie(
 ):
     result = await deleteMovieService.delete_movie_by_id(id)
 
-    write_audit_log(                    
+    write_audit_log(                     
         action="DELETE",
         admin_id=current_user_id,
         movie_id=result.id,
         movie_title=result.name,
-        new_values={"name": result.name, "slug": result.slug_name},
+        new_values={}
     )
     if result:
         background_tasks.add_task(_evict_cache, f"movie:detail:{result.slug_name}")
