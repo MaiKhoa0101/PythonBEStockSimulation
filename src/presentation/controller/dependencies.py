@@ -2,6 +2,11 @@
 
 from fastapi import Depends
 
+from src.application.interfaces.services.analytics_service_interface import IAnalyticsService
+from src.infrastructure.services.analytics_service.analytics_service import AnalyticsService
+from src.application.interfaces.repositories.analytics_repository_interface import IAnalyticsRepository
+from src.infrastructure.database.analytics_session import get_analytics_db
+from src.infrastructure.database.repositories.analytics_repository import AnalyticsRepository
 from src.application.interfaces.repositories.admin_log_repository_interface import IAdminLogRepository
 from src.application.interfaces.services.admin_log_service_interface import IAdminLogService
 from src.infrastructure.database.repositories.admin_log_repository import AdminLogRepository
@@ -76,6 +81,14 @@ def ILogRepositoryDependency(db:Session = Depends(get_db)):
 def IAdminLogRepositoryDependency(db: Session = Depends(get_db)) -> IAdminLogRepository:
     return AdminLogRepository(db=db)
  
+def IAnalyticsRepositoryDependency(
+    db:       Session = Depends(get_analytics_db), 
+    db_mysql: Session = Depends(get_db),          
+) -> IAnalyticsRepository:
+    return AnalyticsRepository(db=db, db_mysql=db_mysql)
+ 
+ 
+
 #=================================================ok
 # Bơm phụ thuộc
 def IGetListMoviesServiceDependency(
@@ -233,4 +246,10 @@ def IAdminLogServiceDependency(
     repository: IAdminLogRepository = Depends(IAdminLogRepositoryDependency),
 ) -> IAdminLogService:
     return AdminLogService(admin_log_repository=repository)
+ 
+
+def IAnalyticsServiceDependency(
+    repository: IAnalyticsRepository = Depends(IAnalyticsRepositoryDependency),
+) -> IAnalyticsService:
+    return AnalyticsService(repository=repository)
  

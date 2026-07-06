@@ -25,15 +25,15 @@ celery_instance.conf.update(
     beat_schedule={
         "sync-view-count": {
             "task": "tasks.sync_view_count",
-            "schedule": 300.0, 
+            "schedule": 3600.0, 
         },
         "expire-premium-users": {
             "task": "tasks.expire_premium_users",
-            "schedule": 300.0,  
+            "schedule": 3600.0,  
         },
         "reconcile-db-to-es-every-night": {
             "task": "tasks.reconcile_movie_data",
-            "schedule": 120, # crontab(hour=16, minute=7),
+            "schedule": 3600, # crontab(hour=16, minute=7),
             "options": {"queue": "light_queue"} 
         },
         
