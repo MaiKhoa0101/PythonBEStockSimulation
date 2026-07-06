@@ -13,7 +13,8 @@ celery_instance = Celery(
         "src.infrastructure.celery.view_count_task",
         "src.infrastructure.celery.expire_premium_task",   
         "src.infrastructure.celery.elastic_task_movie",
-        "src.infrastructure.celery.reconcile_task"
+        "src.infrastructure.celery.reconcile_task",
+        "src.infrastructure.celery.aggregate_task"
     ])
 
 celery_instance.conf.update(
@@ -36,7 +37,12 @@ celery_instance.conf.update(
             "schedule": 3600, # crontab(hour=16, minute=7),
             "options": {"queue": "light_queue"} 
         },
-        
+        "aggregate-es-to-postgres-daily": {
+            "task":     "tasks.aggregate_es_to_postgres",
+            "schedule": crontab(hour=1, minute=0),  # 01:00 sáng mỗi ngày
+            "options":  {"queue": "light_queue"},
+        },
+                
     }
 )
 import src.infrastructure.celery.signal
