@@ -14,7 +14,8 @@ celery_instance = Celery(
         "src.infrastructure.celery.expire_premium_task",   
         "src.infrastructure.celery.elastic_task_movie",
         "src.infrastructure.celery.reconcile_task",
-        "src.infrastructure.celery.aggregate_task"
+        "src.infrastructure.celery.aggregate_task",
+        "src.infrastructure.celery.simulate_traffic_task"
     ])
 
 celery_instance.conf.update(
@@ -42,7 +43,11 @@ celery_instance.conf.update(
             "schedule": crontab(hour=1, minute=0),  # 01:00 sáng mỗi ngày
             "options":  {"queue": "light_queue"},
         },
-                
+        "simulate-user-traffic-every-5min": {
+            "task":     "tasks.simulate_user_traffic",
+            "schedule": 300.0,                    # 300 giây = 5 phút
+            "options":  {"queue": "light_queue"},
+        },        
     }
 )
 import src.infrastructure.celery.signal
