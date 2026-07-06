@@ -4,7 +4,6 @@ from asyncio import Protocol
 from datetime import date
 from typing import Optional
 
-from src.application.interfaces.services.analytics_service_interface import IAnalyticsService
 from src.presentation.dtos.analytics_dto import (
     DistributionItem,
     DistributionResponse,

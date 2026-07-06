@@ -62,7 +62,6 @@ def task_simulate_user_traffic(self):
       3. sync_view_count task (cũ) sẽ flush Redis → MySQL định kỳ.
     """
 
-    # ── Bước 1: Lấy pool phim ngẫu nhiên từ MySQL ────────────────────────────
     db = SessionLocal()
     try:
         movies = (

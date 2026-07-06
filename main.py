@@ -6,7 +6,7 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis.asyncio import Redis as AsyncRedis
 
-from presentation.controller.v1 import analytics_controller
+from src.presentation.controller.v1 import analytics_controller
 from src.presentation.controller.v1 import admin_log_controller
 from src.presentation.controller.v1 import log_controller
 from src.infrastructure.elasticsearch.es_client import create_movie_index
