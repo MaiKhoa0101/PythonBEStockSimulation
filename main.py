@@ -6,6 +6,7 @@ from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis.asyncio import Redis as AsyncRedis
 
+from src.presentation.controller.v1 import category_controller
 from src.presentation.controller.v1 import analytics_controller
 from src.presentation.controller.v1 import admin_log_controller
 from src.presentation.controller.v1 import log_controller
@@ -53,6 +54,8 @@ app.include_router(short.router, prefix="/api/v1/shorts")
 app.include_router(log_controller.router, prefix="/api/v1/logs", tags=["Logs"])
 app.include_router(admin_log_controller.router, prefix="/api/v1/admin-logs", tags=["Admin Logs"])
 app.include_router(analytics_controller.router, prefix="/api/v1/admin-analytics", tags=["Analytics"])
+app.include_router(category_controller.router, prefix="/api/v1/categories", tags=["Categories"])
+
 @app.get("/")
 def root():
     return {"message": "Server is running! Access /docs for Swagger UI"}

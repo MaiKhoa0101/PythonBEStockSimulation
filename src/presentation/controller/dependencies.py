@@ -2,6 +2,10 @@
 
 from fastapi import Depends
 
+from src.application.interfaces.repositories.category_repository_interface import ICategoryRepository
+from src.application.interfaces.services.category_service_interface import IGetListCategoriesService
+from src.infrastructure.database.repositories.category_repository import CategoryRepository
+from src.infrastructure.services.category_service.category_service import GetListCategoriesService
 from src.application.interfaces.services.analytics_service_interface import IAnalyticsService
 from src.infrastructure.services.analytics_service.analytics_service import AnalyticsService
 from src.application.interfaces.repositories.analytics_repository_interface import IAnalyticsRepository
@@ -86,8 +90,11 @@ def IAnalyticsRepositoryDependency(
     db_mysql: Session = Depends(get_db),          
 ) -> IAnalyticsRepository:
     return AnalyticsRepository(db=db, db_mysql=db_mysql)
- 
- 
+
+def ICategoriesRepositoryDependency(
+    db: Session = Depends(get_db)
+) -> ICategoryRepository:
+    return CategoryRepository(db=db)
 
 #=================================================ok
 # Bơm phụ thuộc
@@ -252,4 +259,9 @@ def IAnalyticsServiceDependency(
     repository: IAnalyticsRepository = Depends(IAnalyticsRepositoryDependency),
 ) -> IAnalyticsService:
     return AnalyticsService(repository=repository)
+ 
+def IGetListCategoriesServiceDependency(
+    repository: IAnalyticsRepository = Depends(ICategoriesRepositoryDependency),
+) -> IGetListCategoriesService:
+    return GetListCategoriesService(repository=repository)
  

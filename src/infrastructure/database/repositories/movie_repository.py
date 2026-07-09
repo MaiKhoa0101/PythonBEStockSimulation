@@ -93,7 +93,7 @@ class MoviesRepositories(IMoviesRepository):
         ).first()
         return db_movie
 
-    async def create_movie(self, movie_entity: Movie) -> Movie:
+    async def create_movie(self, movie_entity: Movie, category_ids: List[str] = None) -> Movie:
         print(f"Gọi create repo với {movie_entity}")
         
         # 1. Map từ Entity sang Database Model
@@ -107,8 +107,9 @@ class MoviesRepositories(IMoviesRepository):
             db_episode = entity_to_model(ep_entity, EpisodeModel, exclude={"id", "id_movie", "created_at", "updated_at"})
             db_movie.episodes.append(db_episode)
 
-        # Gán categories từ category_ids (relationship, entity_to_model không xử lý được)
-        db_movie.categories = self._resolve_categories(movie_entity.category_ids)
+        # Gán categories: category_ids lấy trực tiếp từ DTO ở tầng service, truyền
+        # riêng xuống đây (không đi qua entity) vì entity chỉ giữ full Category object.
+        db_movie.categories = self._resolve_categories(category_ids)
 
         # 2. Lưu xuống MySQL
         self.db.add(db_movie)
@@ -123,7 +124,7 @@ class MoviesRepositories(IMoviesRepository):
         # 4. Trả Entity hoàn chỉnh ngược lên cho Service
         return movie_entity
 
-    async def update_entire_movie(self, movie_entity: Movie):
+    async def update_entire_movie(self, movie_entity: Movie, category_ids: List[str] = None):
         db_movie = self.db.query(MovieModel).filter(
             MovieModel.id == movie_entity.id,
             MovieModel.is_deleted == False
@@ -145,7 +146,7 @@ class MoviesRepositories(IMoviesRepository):
         ]
 
         # PUT = thay thế toàn bộ category hiện có bằng category_ids mới gửi lên
-        db_movie.categories = self._resolve_categories(movie_entity.category_ids)
+        db_movie.categories = self._resolve_categories(category_ids)
 
         self.db.commit()
         self.db.refresh(db_movie)
@@ -156,7 +157,7 @@ class MoviesRepositories(IMoviesRepository):
 
         return movie_entity
         
-    async def patch_movie(self, movie_entity):
+    async def patch_movie(self, movie_entity, category_ids: List[str] = None):
         try:
             db_movie = self.db.query(MovieModel).filter(
                 MovieModel.id == movie_entity.id,
@@ -177,8 +178,8 @@ class MoviesRepositories(IMoviesRepository):
 
             # PATCH = chỉ đụng vào category khi FE thực sự gửi category_ids
             # (None nghĩa là FE không gửi field này, giữ nguyên category cũ)
-            if movie_entity.category_ids is not None:
-                db_movie.categories = self._resolve_categories(movie_entity.category_ids)
+            if category_ids is not None:
+                db_movie.categories = self._resolve_categories(category_ids)
 
             self.db.commit()
             self.db.refresh(db_movie)

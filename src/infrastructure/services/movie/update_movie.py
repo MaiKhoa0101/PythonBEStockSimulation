@@ -23,7 +23,8 @@ class UpdateEntireMovie(IUpdateEntireMovie):
             exclude={"episodes"},
             overrides={"id": id, "episodes": episode_entities}
         )
-        updated = await self.movie_repository.update_entire_movie(movie_entity=movie_entity)
+        updated = await self.movie_repository.update_entire_movie(
+            movie_entity=movie_entity,
+            category_ids=movie_data.category_ids,  # lấy trực tiếp từ DTO, không qua entity
+        )
         return updated or None
-
-    
