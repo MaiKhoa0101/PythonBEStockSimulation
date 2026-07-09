@@ -1,77 +1,73 @@
+# src/infrastructure/celery/reconcile_task.py
+
 import logging
-from datetime import datetime, timedelta, timezone
 import os
-from src.infrastructure.elasticsearch.es_client import es_client
-from src.infrastructure.database.models.movies.movie_model import MovieModel
-from src.infrastructure.celery.signal import _session_ctx
-from src.infrastructure.celery.celery_app import celery_instance
+from datetime import datetime, timedelta, timezone
+
 from redis import Redis as SyncRedis
 
-from fastapi_cache import FastAPICache
+from src.infrastructure.celery.celery_app import celery_instance
+from src.infrastructure.celery.signal import _session_ctx
+from src.infrastructure.database.models.movies.movie_model import MovieModel
+from src.infrastructure.elasticsearch.es_client import es_client
 
 logger = logging.getLogger(__name__)
 
-async def check_and_evict_redis_cache(cache_key: str) -> bool:
-    redis_backend = FastAPICache.get_backend()
-    
-    cache_exists = await redis_backend.get(cache_key)
-    if cache_exists:
-        await redis_backend.clear(key=cache_key)
-        return True
-    return False
+# SyncRedis trỏ đúng db=1 (cache) — tách khỏi broker db=0
+_redis = SyncRedis.from_url(
+    os.getenv("REDIS_URL", "redis://redis:6379/1"),
+    decode_responses=True,
+)
+
 
 @celery_instance.task(name="tasks.reconcile_movie_data")
 def task_reconcile_movie_data():
     logger.info("[Đối soát] Bắt đầu tiến trình rà soát dữ liệu phim biến động...")
-    redis_url = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
-    r = SyncRedis.from_url(redis_url, decode_responses=True)
 
-    now = datetime.now(timezone.utc)
+    now                   = datetime.now(timezone.utc)
     twenty_four_hours_ago = now - timedelta(hours=24)
 
     try:
         with _session_ctx() as session:
             recent_movies = session.query(MovieModel).filter(
                 MovieModel.updated_at >= twenty_four_hours_ago,
-                MovieModel.is_deleted == False
+                MovieModel.is_deleted == False,
             ).all()
-            
-            logger.info(f"[Đối soát] Tìm thấy {len(recent_movies)} phim có biến động trong 24h qua.")
-            
-            redis_backend = FastAPICache.get_backend()
-            
-            for movie in recent_movies:
-                # ── KHÂU 1: ĐỐI SOÁT ELASTICSEARCH ─────────────────────────────────────
-                need_sync_es = False
-                try:
-                    # Lấy trực tiếp document từ ES bằng ID gốc của MySQL
-                    es_res = es_client.get(index=es_client.MOVIE_INDEX, id=str(movie.id))
-                    es_source = es_res["_source"]
-                    
-                    es_updated_at = es_source.get("updated_at")
-                    if not es_updated_at or es_updated_at < movie.updated_at.isoformat():
-                        need_sync_es = True
-                        logger.warning(f"❌ [Lệch pha ES] Phim ID {movie.id} dữ liệu ES bị cũ.")
-                except Exception:
+
+        logger.info("[Đối soát] Tìm thấy %d phim biến động trong 24h.", len(recent_movies))
+
+        if not recent_movies:
+            return
+
+        for movie in recent_movies:
+
+            # ── KHÂU 1: ĐỐI SOÁT ELASTICSEARCH ──────────────────────────────
+            need_sync_es = False
+            try:
+                es_res        = es_client.get(index=es_client.MOVIE_INDEX, id=str(movie.id))
+                es_updated_at = es_res["_source"].get("updated_at")
+
+                if not es_updated_at or es_updated_at < movie.updated_at.isoformat():
                     need_sync_es = True
-                    logger.warning(f"❌ [Thiếu dữ liệu ES] Phim ID {movie.id} chưa tồn tại trên ES.")
+                    logger.warning("❌ [Lệch pha ES] Phim %s — ES cũ hơn DB.", movie.id)
+            except Exception:
+                need_sync_es = True
+                logger.warning("❌ [Thiếu ES] Phim %s chưa có trên ES.", movie.id)
 
-                # Nếu phát hiện lệch pha hoặc thiếu -> Bắn lệnh vá sang Celery Sync Task
-                if need_sync_es:
-                    celery_instance.send_task("tasks.sync_movie_to_es", args=[movie.id], queue="light_queue")
-                    logger.info(f"[Đã vá ES] Phát lệnh tái đồng bộ cho phim ID {movie.id}")
+            if need_sync_es:
+                celery_instance.send_task(
+                    "tasks.sync_movie_to_es",
+                    args=[movie.id],
+                    queue="light_queue",
+                )
+                logger.info("[Đã vá ES] Phát lệnh sync cho phim %s.", movie.id)
 
-                # ── KHÂU 2: ĐỐI SOÁT REDIS CACHE ──────────────────────────────────────
-                # Tư tưởng luồng Ghi: Nếu phim có biến động, Cache CHI TIẾT bắt buộc phải TRỐNG
-                # Nếu giờ này kiểm tra mà vẫn thấy Key Cache tồn tại -> Nghĩa là luồng xóa cache lúc ghi bị lỗi (Cache thối)
-                cache_key = f"movie:detail:{movie.slug_name}"
-                
-                # Kiểm tra ngầm sự tồn tại của key trên Redis
-                cache_exists = redis_backend.get(cache_key)
-                if cache_exists:
-                    # Tiến hành vá: Ép xóa sạch cái cache thối này đi
-                    redis_backend.clear(cache_key)
-                    logger.warning(f"🧹 [Đã vá Cache] Phát hiện và dọn dẹp Cache thối tại Key: {cache_key}")
-                    
-    except Exception as e:
-        logger.error(f"💥 Lỗi hệ thống trong quá trình chạy đối soát: {str(e)}")
+            # ── KHÂU 2: ĐỐI SOÁT REDIS CACHE ────────────────────────────────
+            cache_key = f"movie:detail:{movie.slug_name}"
+
+            if _redis.exists(cache_key):
+                _redis.delete(cache_key)
+                logger.warning("🧹 [Đã vá Cache] Xóa cache thối: %s", cache_key)
+
+    except Exception:
+        logger.exception("💥 Lỗi hệ thống trong tiến trình đối soát.")

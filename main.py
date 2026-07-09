@@ -52,7 +52,7 @@ app.include_router(transaction.router, prefix="/api/v1/transaction")
 app.include_router(short.router, prefix="/api/v1/shorts")
 app.include_router(log_controller.router, prefix="/api/v1/logs", tags=["Logs"])
 app.include_router(admin_log_controller.router, prefix="/api/v1/admin-logs", tags=["Admin Logs"])
-app.include_router(analytics_controller.router, prefix="/api/v1/analytics", tags=["Analytics"])
+app.include_router(analytics_controller.router, prefix="/api/v1/admin-analytics", tags=["Analytics"])
 @app.get("/")
 def root():
     return {"message": "Server is running! Access /docs for Swagger UI"}

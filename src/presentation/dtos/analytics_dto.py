@@ -1,9 +1,14 @@
 # src/presentation/dtos/analytics_dto.py
 
-from datetime import date
-from typing import List
+from datetime import date, datetime
+from typing import List, Literal
 
 from pydantic import BaseModel, Field
+
+# Khớp với Granularity ở analytics_repository_interface.py — 2 nơi định nghĩa
+# riêng có chủ đích (presentation vs domain layer không nên phụ thuộc chéo),
+# nếu đổi danh sách giá trị hợp lệ thì sửa cả 2 chỗ.
+Granularity = Literal["minute", "hour", "day", "week", "month"]
 
 
 class TopTrendingItem(BaseModel):
@@ -25,7 +30,7 @@ class TopTrendingResponse(BaseModel):
 
 
 class ViewsOverviewItem(BaseModel):
-    date:         date
+    date:         datetime
     total_views:  int = Field(ge=0)
     total_likes:  int = Field(ge=0)
     total_clicks: int = Field(ge=0)
@@ -34,9 +39,10 @@ class ViewsOverviewItem(BaseModel):
 
 
 class ViewsOverviewResponse(BaseModel):
-    start_date: date | None
-    end_date:   date | None
-    items:      List[ViewsOverviewItem]
+    start_date:  date | None
+    end_date:    date | None
+    granularity: Granularity = "day"
+    items:       List[ViewsOverviewItem]
 
 
 class DistributionItem(BaseModel):

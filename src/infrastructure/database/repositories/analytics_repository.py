@@ -7,17 +7,25 @@ Repository dùng 2 session:
 """
 
 from datetime import date
-from typing import List, Optional, Tuple
+from typing import List, Literal, Optional, Tuple
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from src.infrastructure.database.models.categories.categories import CategoryModel
 from src.application.interfaces.repositories.analytics_repository_interface import IAnalyticsRepository
 from src.infrastructure.database.models.analytics.movie_daily_statistic import MovieDailyStatistic
 from src.infrastructure.database.models.movies.movie_model import MovieModel
 from src.infrastructure.database.models.associations.associations import (
     movie_category_association,
 )
+
+# Các mức gom nhóm hợp lệ mà Postgres date_trunc() chấp nhận.
+# Lưu ý: không thể gom mịn hơn độ phân giải bucket lúc ghi ở aggregate_task.py
+# (mặc định "hour") — chọn "minute" ở đây sẽ chỉ trả về đúng dữ liệu theo giờ,
+# lặp lại cho từng phút trong giờ đó chứ KHÔNG chính xác hơn.
+Granularity = Literal["minute", "hour", "day", "week", "month"]
+_VALID_GRANULARITIES = {"minute", "hour", "day", "week", "month"}
 
 
 class AnalyticsRepository(IAnalyticsRepository):
@@ -93,16 +101,28 @@ class AnalyticsRepository(IAnalyticsRepository):
     # ── Views Overview (PostgreSQL) ───────────────────────────────────────────
     def get_views_overview(
         self,
-        start_date: Optional[date],
-        end_date:   Optional[date],
+        start_date:  Optional[date],
+        end_date:    Optional[date],
+        granularity: Granularity = "day",
     ) -> List[dict]:
-        query = (
-            self.db.query(
-                MovieDailyStatistic.date,
-                func.sum(MovieDailyStatistic.views_count).label("total_views"),
-                func.sum(MovieDailyStatistic.likes_count).label("total_likes"),
-                func.sum(MovieDailyStatistic.click_count).label("total_clicks"),
-            )
+        """
+        Gom nhóm view/like/click theo mốc thời gian.
+
+        `granularity`: "minute" | "hour" | "day" | "week" | "month".
+        Dữ liệu gốc trong movie_daily_statistics được ghi theo bucket giờ
+        (xem aggregate_task.py), nên đây luôn là gom LẠI (roll-up) từ giờ
+        lên các mốc thô hơn — không thể mịn hơn "hour".
+        """
+        if granularity not in _VALID_GRANULARITIES:
+            raise ValueError(f"granularity không hợp lệ: {granularity!r}")
+
+        bucket = func.date_trunc(granularity, MovieDailyStatistic.date).label("bucket")
+
+        query = self.db.query(
+            bucket,
+            func.sum(MovieDailyStatistic.views_count).label("total_views"),
+            func.sum(MovieDailyStatistic.likes_count).label("total_likes"),
+            func.sum(MovieDailyStatistic.click_count).label("total_clicks"),
         )
 
         if start_date:
@@ -112,14 +132,14 @@ class AnalyticsRepository(IAnalyticsRepository):
 
         rows = (
             query
-            .group_by(MovieDailyStatistic.date)
-            .order_by(MovieDailyStatistic.date.asc())
+            .group_by(bucket)
+            .order_by(bucket.asc())
             .all()
         )
 
         return [
             {
-                "date":         r.date,
+                "date":         r.bucket,
                 "total_views":  r.total_views  or 0,
                 "total_likes":  r.total_likes  or 0,
                 "total_clicks": r.total_clicks or 0,
@@ -138,9 +158,9 @@ class AnalyticsRepository(IAnalyticsRepository):
                 func.count(MovieModel.id).label("value"),
             )
             .join(movie_category_association,
-                  CategoryModel.id == movie_category_association.c.category_id)
+                  CategoryModel.id == movie_category_association.c.id_category)
             .join(MovieModel,
-                  MovieModel.id == movie_category_association.c.movie_id)
+                  MovieModel.id == movie_category_association.c.id_movie)
             .filter(MovieModel.is_deleted == False)
             .group_by(CategoryModel.id, CategoryModel.name)
             .order_by(func.count(MovieModel.id).desc())

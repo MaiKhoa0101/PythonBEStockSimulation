@@ -19,7 +19,7 @@ services:
     networks:
       - app_network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pKute12345"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]     
       interval: 5s
       timeout: 5s
       retries: 10
@@ -33,9 +33,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -58,40 +60,50 @@ services:
         condition: service_started
       elasticsearch:
         condition: service_healthy
+      postgres:                        
+        condition: service_healthy
     networks:
       - app_network
 
   worker_light:
-    build: .
-    command: celery -A src.infrastructure.celery.celery_app.celery_instance worker -Q light_queue --loglevel=info
-    volumes:
-      - .:/app
-    env_file:
-      - .env
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    networks:
-      - app_network
+      build: .
+      command: celery -A src.infrastructure.celery.celery_app.celery_instance worker -Q light_queue --loglevel=info
+      volumes:
+        - .:/app
+      env_file:
+        - .env
+      depends_on:
+        mysql:
+          condition: service_healthy
+        redis:
+          condition: service_started
+        elasticsearch:
+          condition: service_healthy
+        postgres:                   
+          condition: service_healthy
+      networks:
+        - app_network
 
   worker_heavy:
-    build: .
-    command: celery -A src.infrastructure.celery.celery_app.celery_instance worker -Q heavy_queue --loglevel=info --concurrency=1
-    volumes:
-      - .:/app
-      - ./media:/app/media 
-    env_file:
-      - .env
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    networks:
-      - app_network
-      
+      build: .
+      command: celery -A src.infrastructure.celery.celery_app.celery_instance worker -Q heavy_queue --loglevel=info --concurrency=1
+      volumes:
+        - .:/app
+        - ./media:/app/media 
+      env_file:
+        - .env
+      depends_on:
+        mysql:
+          condition: service_healthy
+        redis:
+          condition: service_started
+        elasticsearch:
+          condition: service_healthy
+        postgres:                        
+          condition: service_healthy
+      networks:
+        - app_network
+        
   flower:
     build: .
     command: celery -A src.infrastructure.celery.celery_app.celery_instance flower --port=5555

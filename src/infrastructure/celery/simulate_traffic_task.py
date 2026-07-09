@@ -21,13 +21,16 @@ Tại sao bơm vào Redis thay vì ghi thẳng MySQL/PostgreSQL?
 import logging
 import os
 import random
+from datetime import datetime, timedelta, timezone
 
 import redis
 from sqlalchemy import func
+from elasticsearch.helpers import bulk  # 🔥 THÊM: Import helper bulk để đẩy mẻ lớn tốc độ cao
 
 from src.infrastructure.celery.celery_app import celery_instance
 from src.infrastructure.database.models.movies.movie_model import MovieModel
 from src.infrastructure.database.session import SessionLocal
+from src.infrastructure.elasticsearch.es_client import es_client  # 🔥 THÊM: Sử dụng es_client chung
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +61,8 @@ def task_simulate_user_traffic(self):
     """
     Mỗi 5 phút:
       1. Bốc ngẫu nhiên 5–10 phim đang hoạt động từ MySQL.
-      2. Pipeline Redis INCRBY — tăng view và like ảo.
-      3. sync_view_count task (cũ) sẽ flush Redis → MySQL định kỳ.
+      2. Pipeline Redis INCRBY — tăng view và like ảo phục vụ xả đệm MySQL.
+      3. Bulk đúc dữ liệu tương tác thô (view/like) của NGÀY HÔM QUA ném vào Elasticsearch.
     """
 
     db = SessionLocal()
@@ -85,11 +88,15 @@ def task_simulate_user_traffic(self):
     k      = random.randint(PICK_MIN, PICK_MAX)
     picked = random.sample(movies, min(k, len(movies)))
 
-    # ── Bước 3: Redis pipeline — 1 round-trip cho tất cả INCRBY ──────────────
-    # pipeline(transaction=False): không dùng MULTI/EXEC, đủ dùng cho INCRBY
-    # vì từng lệnh INCRBY đã atomic tự nhiên trong Redis
+    # ── Bước 3: Hạ tầng nạp dữ liệu song song (Redis + Elasticsearch) ──────────
     total_views = 0
     total_likes = 0
+    es_actions = []  # Mảng chứa danh sách các tài liệu log thô chuẩn bị bắn sang ES
+
+    # 💡 CHI TIẾT VÀNG: Bốc mốc thời gian ngày hôm qua để con task tổng hợp 
+    # (chạy 5 phút/lần khi test) bốc được số liệu để tính toán ngay lập tức.
+    now = datetime.now(timezone.utc)
+    yesterday_base = now - timedelta(days=1)
 
     try:
         pipe = _redis.pipeline(transaction=False)
@@ -98,16 +105,59 @@ def task_simulate_user_traffic(self):
             n_views = random.randint(VIEW_MIN, VIEW_MAX)
             n_likes = random.randint(LIKE_MIN, LIKE_MAX)
 
+            # 🛠️ Hành động 1: Tích lũy vào RAM Redis db=1 phục vụ luồng xả đệm MySQL cũ
             pipe.incrby(f"view:{movie.id}", n_views)
             pipe.incrby(f"like:{movie.id}", n_likes)
 
             total_views += n_views
             total_likes += n_likes
 
+            # 🛠️ Hành động 2: Chuẩn bị mẻ log thô ném sang Elasticsearch
+            # Tạo các bản ghi sự kiện View
+            for _ in range(n_views):
+                # Sinh giờ, phút, giây ngẫu nhiên trong ngày hôm qua để biểu đồ miền/đường uốn lượn tự nhiên
+                h = random.randint(0, 23)
+                m = random.randint(0, 59)
+                s = random.randint(0, 59)
+                ts = datetime(yesterday_base.year, yesterday_base.month, yesterday_base.day, h, m, s, tzinfo=timezone.utc)
+                
+                es_actions.append({
+                    "_index": "movie_interactions_log",
+                    "_source": {
+                        "movie_id": str(movie.id),
+                        "action": "view",
+                        "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S") # Định dạng khớp strict_date_hour_minute_second
+                    }
+                })
+
+            # Tạo các bản ghi sự kiện Like
+            for _ in range(n_likes):
+                h = random.randint(0, 23)
+                m = random.randint(0, 59)
+                s = random.randint(0, 59)
+                ts = datetime(yesterday_base.year, yesterday_base.month, yesterday_base.day, h, m, s, tzinfo=timezone.utc)
+                
+                es_actions.append({
+                    "_index": "movie_interactions_log",
+                    "_source": {
+                        "movie_id": str(movie.id),
+                        "action": "like",
+                        "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S")
+                    }
+                })
+
+        # Thực thi đẩy bộ đếm sang Redis (1 Round-trip)
         pipe.execute()
 
+        # 🚀 Tiến hành thực thi đẩy mẻ log thô sang Elasticsearch
+        if es_actions:
+            success_count, failed = bulk(es_client, es_actions)
+            logger.info("[SimTraffic] Đã bulk sync thành công %d tài liệu log thô vào Elasticsearch Index 'movie_interactions_log' ✓", success_count)
+            if failed:
+                logger.error("[SimTraffic] Số bản ghi bulk thất bại: %d", len(failed))
+
     except Exception as exc:
-        logger.exception("[SimTraffic] Redis pipeline lỗi: %s", exc)
+        logger.exception("[SimTraffic] Hệ thống đường ống (Pipeline) gặp lỗi: %s", exc)
         raise self.retry(exc=exc)
 
     result = {
@@ -116,5 +166,5 @@ def task_simulate_user_traffic(self):
         "likes_added": total_likes,
         "movies":      [m.name for m in picked],
     }
-    logger.info("[SimTraffic] ✓ %s", result)
+    logger.info("[SimTraffic] Hoàn tất chu kỳ giả lập: %s", result)
     return result

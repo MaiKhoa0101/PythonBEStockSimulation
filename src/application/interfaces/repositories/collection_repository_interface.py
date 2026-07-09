@@ -1,4 +1,6 @@
-from asyncio import Protocol
+
+
+from typing import Protocol
 
 
 class ICollectionRepository (Protocol):

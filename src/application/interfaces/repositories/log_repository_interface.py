@@ -1,5 +1,4 @@
-from asyncio import Protocol
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Protocol, Tuple
 
 from sqlalchemy.orm import Session
 

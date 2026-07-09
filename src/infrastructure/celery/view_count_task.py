@@ -11,7 +11,7 @@ from src.infrastructure.celery.celery_app import celery_instance
     queue = "light_queue"
 )
 def sync_view_count():
-    redis_url = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
+    redis_url = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/1")
     r = SyncRedis.from_url(redis_url, decode_responses=True)
     db = SessionLocal()
 

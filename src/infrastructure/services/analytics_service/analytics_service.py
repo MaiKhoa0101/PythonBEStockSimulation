@@ -1,4 +1,4 @@
-# src/application/services/analytics_service.py
+# src/infracstructure/services/analytics_service/analytics_service.py
 
 from datetime import date
 from typing import Optional
@@ -48,14 +48,22 @@ class AnalyticsService(IAnalyticsService):
 
     async def get_views_overview(
         self,
-        start_date: Optional[date],
-        end_date:   Optional[date],
+        start_date:  Optional[date],
+        end_date:    Optional[date],
+        granularity: str = "day",
     ) -> ViewsOverviewResponse:
-        rows = self._repo.get_views_overview(start_date, end_date)
+        """
+        `granularity`: "minute" | "hour" | "day" | "week" | "month" — dùng cho
+        trục thời gian của chart đường/miền bên FE. Repository sẽ raise
+        ValueError nếu giá trị không hợp lệ (controller nên chặn từ trước
+        bằng kiểu Literal, xem analytics_controller.py).
+        """
+        rows = self._repo.get_views_overview(start_date, end_date, granularity)
 
         return ViewsOverviewResponse(
             start_date=start_date,
             end_date=end_date,
+            granularity=granularity,
             items=[
                 ViewsOverviewItem(
                     date=r["date"],
@@ -70,8 +78,7 @@ class AnalyticsService(IAnalyticsService):
     async def get_genres_distribution(self) -> DistributionResponse:
         rows = self._repo.get_genres_distribution()
 
-        total = sum(r["value"] for r in rows) or 1  # tránh ZeroDivisionError
-
+        total = sum(r["value"] for r in rows) or 1 
         return DistributionResponse(
             total_movies=total,
             items=[

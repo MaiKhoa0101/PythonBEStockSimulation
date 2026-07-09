@@ -2,9 +2,10 @@
 
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
-
+load_dotenv()
 ANALYTICS_DATABASE_URL = os.getenv(
     "ANALYTICS_DATABASE_URL",
     "postgresql+psycopg2://postgres:Kute12345@postgres:5432/movie_analytics",
@@ -41,9 +42,9 @@ def get_analytics_db():
 
 
 def create_analytics_tables():
-    """
-    Tạo toàn bộ bảng analytics trong PostgreSQL.
-    Gọi hàm này 1 lần khi khởi động app (xem main.py bên dưới).
-    """
+    # Import model ở đây để đảm bảo nó đã đăng ký vào AnalyticsBase.metadata
+    # TRƯỚC khi gọi create_all() — dù main.py có import hay không
+    from src.infrastructure.database.models.analytics.movie_daily_statistic import MovieDailyStatistic  # noqa: F401
+
     AnalyticsBase.metadata.create_all(bind=analytics_engine)
     print("[Analytics] PostgreSQL tables created ✓")
