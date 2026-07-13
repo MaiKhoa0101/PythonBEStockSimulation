@@ -6,7 +6,7 @@ Repository dùng 2 session:
                                               (genres_distribution)
 """
 
-from datetime import date
+from datetime import date, timedelta
 from typing import List, Literal, Optional, Tuple
 
 from sqlalchemy import func
@@ -60,7 +60,12 @@ class AnalyticsRepository(IAnalyticsRepository):
         if start_date:
             query = query.filter(MovieDailyStatistic.date >= start_date)
         if end_date:
-            query = query.filter(MovieDailyStatistic.date <= end_date)
+            # MovieDailyStatistic.date là DateTime(timezone=True) lưu theo bucket
+            # GIỜ trong ngày (00:00, 01:00, ...). So sánh trực tiếp `date <= end_date`
+            # bị Postgres implicit-cast end_date thành đúng 00:00:00 của ngày đó
+            # (nửa đêm) → loại mất toàn bộ 23 bucket giờ còn lại trong ngày end_date.
+            # Dùng "< ngày kế tiếp" để bao trọn hết ngày end_date.
+            query = query.filter(MovieDailyStatistic.date < end_date + timedelta(days=1))
 
         query = query.group_by(MovieDailyStatistic.movie_id)
 
@@ -128,7 +133,8 @@ class AnalyticsRepository(IAnalyticsRepository):
         if start_date:
             query = query.filter(MovieDailyStatistic.date >= start_date)
         if end_date:
-            query = query.filter(MovieDailyStatistic.date <= end_date)
+            # Cùng bug như get_top_trending — xem giải thích ở đó.
+            query = query.filter(MovieDailyStatistic.date < end_date + timedelta(days=1))
 
         rows = (
             query
