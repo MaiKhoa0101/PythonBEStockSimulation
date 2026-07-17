@@ -11,7 +11,6 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
 logger = logging.getLogger(__name__)
 
 BACKFILL_DAYS_BACK = int(os.getenv("BACKFILL_DAYS_BACK", "1"))
-_BACKFILL_LOCK_FILE = f"/tmp/.backfill_lock_{BACKFILL_DAYS_BACK}"
 
 celery_instance = Celery(
     "movie_streaming_worker",
@@ -45,12 +44,12 @@ celery_instance.conf.update(
         },
         "reconcile-db-to-es-every-night": {
             "task": "tasks.reconcile_movie_data",
-            "schedule": 3600, # crontab(hour=16, minute=7),
+            "schedule": 300, # crontab(hour=16, minute=7),
             "options": {"queue": "light_queue"} 
         },
         "aggregate-es-to-postgres-daily": {
             "task":     "tasks.aggregate_es_to_postgres",
-            "schedule": 600, 
+            "schedule": 300, 
             "kwargs":   {"days_back": 1}, 
             "options":  {"queue": "light_queue"},
         },

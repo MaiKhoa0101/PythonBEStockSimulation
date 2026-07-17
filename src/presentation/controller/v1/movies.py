@@ -1,11 +1,9 @@
 # src/presentation/controller/movie_controller.py
-import asyncio
-import json
-
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
 from fastapi.encoders import jsonable_encoder
-from fastapi_cache import FastAPICache
 
+
+from src.infrastructure.cache.movie_cache import cache_delete, cache_get_json, cache_set_json, movie_detail_key, movie_list_home_key
 from src.infrastructure.services.logs.admin_log_service import write_audit_log
 from src.application.interfaces.services.movies_service_interface import (
     ICreateMovie,
@@ -37,25 +35,12 @@ from src.presentation.controller.dependencies import (
 )
 from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, MovieUpdateDTO
 
-_TASK_SYNC_MOVIE = "src.infrastructure.celery.elastic_task_movie.sync_movie_to_es"
-_TASK_DEL_MOVIE  = "src.infrastructure.celery.elastic_task_movie.delete_movie_from_es"
-_TASK_BULK_SYNC  = "src.infrastructure.celery.elastic_task_movie.task_bulk_sync_all_movies_to_es"
-
+_TASK_SYNC_MOVIE = "tasks.sync_movie_to_es"
+_TASK_DEL_MOVIE  = "tasks.delete_movie_from_es"
+_TASK_SYNC_BULK  = "tasks.bulk_sync_all_movies_to_es"
 router = APIRouter()
 require_watchable_role = RoleChecker(["admin", "premium"])
 require_admin          = RoleChecker(["admin"])
-
-async def _evict_cache(cache_key: str) -> None:
-
-    await FastAPICache.get_backend().clear(cache_key)
-
-
-def _warm_cache(cache_key: str, data: dict, expire: int) -> None:
-
-    asyncio.create_task(
-        FastAPICache.get_backend().set(cache_key, json.dumps(data), expire=expire)
-    )
-
 
 @router.get("/")
 async def api_get_movie_list(
@@ -68,18 +53,17 @@ async def api_get_movie_list(
 
 
 @router.get("/listhome")
-async def api_get_movie_list_home():
-    cache_key = "movie:list:home"
-    backend   = FastAPICache.get_backend()
+async def api_get_movie_list_home(redis=Depends(get_redis_client)):
+    cache_key = movie_list_home_key()
 
-    cached = await backend.get(cache_key)
-    if cached:
-        return {"status": "Success", "data": json.loads(cached)}
+    cached = await cache_get_json(redis, cache_key)
+    if cached is not None:
+        return {"status": "Success", "data": cached}
 
     result = fetch_movies_list_home_from_es(page=1, size=20)
     if result:
         serializable_data = jsonable_encoder(result)
-        _warm_cache(cache_key, serializable_data, expire=120)  
+        await cache_set_json(redis, cache_key, serializable_data, expire=120)
         return {"status": "Success", "data": serializable_data}
 
     return {"status": "Failed", "data": "Lấy danh sách không thành công"}
@@ -94,18 +78,17 @@ def api_search_movies(q: str):
 
 
 @router.get("/name/{name}")
-async def api_get_movie_detail_by_name(name: str):
-    cache_key = f"movie:detail:{name}"
-    backend   = FastAPICache.get_backend()
+async def api_get_movie_detail_by_name(name: str, redis=Depends(get_redis_client)):
+    cache_key = movie_detail_key(name)
 
-    cached = await backend.get(cache_key)
-    if cached:
-        return {"status": "Success", "data": json.loads(cached)}
+    cached = await cache_get_json(redis, cache_key)
+    if cached is not None:
+        return {"status": "Success", "data": cached}
 
     result = get_movie_by_slug_from_es(name)
     if result:
         serializable_data = jsonable_encoder(result)
-        _warm_cache(cache_key, serializable_data, expire=3600)
+        await cache_set_json(redis, cache_key, serializable_data, expire=300)
         return {"status": "Success", "data": serializable_data}
 
     return {"status": "Failed", "data": "Tìm không thành công"}
@@ -124,7 +107,7 @@ async def api_get_movie_detail_by_id(
 
 @router.get("/sync_movie")
 async def api_sync_movie():
-    celery_instance.send_task(_TASK_BULK_SYNC)
+    celery_instance.send_task(_TASK_SYNC_BULK, queue="light_queue")
     return {"status": "Success", "data": "Đã kích hoạt sync toàn bộ phim"}
 
 
@@ -140,7 +123,7 @@ async def api_create_movie(
 ):
     result = await createMovieService.create_movie(movie_data)
     if result:
-        celery_instance.send_task(_TASK_SYNC_MOVIE, args=[result.id])
+        celery_instance.send_task(_TASK_SYNC_MOVIE, args=[result.id], queue="light_queue")
         write_audit_log(                     
             action="CREATE",
             admin_id=current_user_id,
@@ -159,11 +142,11 @@ async def api_update_movie(
     updateMovieDTO: MovieUpdateDTO = ...,
     current_user_id: str = Depends(require_admin.check),
     updateEntireMovieService: IUpdateEntireMovie = Depends(IUpdateEntireMovieDependency),
+    redis=Depends(get_redis_client),
 ):
     result = await updateEntireMovieService.update_entire_movie(id, updateMovieDTO)
     if result:
-        cache_key = f"movie:detail:{result.slug_name}"
-        background_tasks.add_task(_evict_cache, cache_key)
+        background_tasks.add_task(cache_delete, redis, movie_detail_key(result.slug_name))
 
         write_audit_log(                     
             action="UPDATE",
@@ -173,8 +156,8 @@ async def api_update_movie(
             new_values=updateMovieDTO.model_dump()
         )
         celery_instance.send_task(
-            "tasks.sync_movie", 
-            args=[result.id, cache_key],
+            _TASK_SYNC_MOVIE,
+            args=[result.id],
             queue="light_queue"
         )
         return {"status": "Success", "data": result}
@@ -188,11 +171,11 @@ async def api_patch_movie(
     update_batch_movie: MoviePatchDTO = ...,
     current_user_id: str = Depends(require_admin.check),
     patchMovieService: IPatchMovie = Depends(IPatchMovieDependency),
+    redis=Depends(get_redis_client),
 ):
     result = await patchMovieService.patch_movie(id, update_batch_movie)
     if result:
-        background_tasks.add_task(_evict_cache, f"movie:detail:{result.slug_name}")
-        celery_instance.send_task(_TASK_SYNC_MOVIE, args=[id])
+        background_tasks.add_task(cache_delete, redis, movie_detail_key(result.slug_name))
 
         write_audit_log(                     
             action="PATCH",
@@ -200,6 +183,11 @@ async def api_patch_movie(
             movie_id=result.id,
             movie_title=result.name,
             new_values=update_batch_movie.model_dump()
+        )
+        celery_instance.send_task(
+            _TASK_SYNC_MOVIE,
+            args=[result.id],
+            queue="light_queue"
         )
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Update không thành công"}
@@ -211,6 +199,7 @@ async def api_delete_movie(
     id: str = Path(...),
     current_user_id: str = Depends(require_admin.check),
     deleteMovieService: IDeleteMovie = Depends(IDeleteMovieDependency),
+    redis=Depends(get_redis_client),
 ):
     result = await deleteMovieService.delete_movie_by_id(id)
 
@@ -222,8 +211,8 @@ async def api_delete_movie(
         new_values={}
     )
     if result:
-        background_tasks.add_task(_evict_cache, f"movie:detail:{result.slug_name}")
-        celery_instance.send_task(_TASK_DEL_MOVIE, args=[id])
+        background_tasks.add_task(cache_delete, redis, movie_detail_key(result.slug_name))
+        celery_instance.send_task(_TASK_DEL_MOVIE, args=[id], queue="light_queue")
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Xóa không thành công"}
 

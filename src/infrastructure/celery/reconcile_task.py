@@ -8,12 +8,12 @@ from redis import Redis as SyncRedis
 
 from src.infrastructure.celery.celery_app import celery_instance
 from src.infrastructure.celery.signal import _session_ctx
+from src.infrastructure.cache.movie_cache import movie_detail_key
 from src.infrastructure.database.models.movies.movie_model import MovieModel
 from src.infrastructure.elasticsearch.es_client import es_client, MOVIE_INDEX
 
 logger = logging.getLogger(__name__)
 
-# SyncRedis trỏ đúng db=1 (cache) — tách khỏi broker db=0
 _redis = SyncRedis.from_url(
     os.getenv("REDIS_URL", "redis://redis:6379/1"),
     decode_responses=True,
@@ -42,7 +42,32 @@ def task_reconcile_movie_data():
                 for m in recent_movies
             ]
 
+            # Trước đây chỉ đối soát phim ĐANG active — không phát hiện được
+            # trường hợp phim bị xóa mềm nhưng task delete_movie_from_es
+            # thất bại/chưa chạy, khiến document rác vẫn còn nguyên trên ES.
+            recently_deleted_movies = session.query(MovieModel).filter(
+                MovieModel.updated_at >= twenty_four_hours_ago,
+                MovieModel.is_deleted == True,
+            ).all()
+            deleted_ids = [m.id for m in recently_deleted_movies]
+
         logger.info("[Đối soát] Tìm thấy %d phim biến động trong 24h.", len(movies_data))
+
+        if deleted_ids:
+            logger.info("[Đối soát] Tìm thấy %d phim đã xóa mềm trong 24h, kiểm tra ES.", len(deleted_ids))
+            for movie_id in deleted_ids:
+                try:
+                    es_client.get(index=MOVIE_INDEX, id=str(movie_id))
+                    # Nếu get() không raise nghĩa là ES vẫn còn document — cần xóa
+                    celery_instance.send_task(
+                        "tasks.delete_movie_from_es",
+                        args=[str(movie_id)],
+                        queue="light_queue",
+                    )
+                    logger.warning("🧹 [Đã vá ES] Phim %s đã xóa mềm nhưng ES còn — phát lệnh xóa.", movie_id)
+                except Exception:
+                    # get() raise nghĩa là ES đã không còn document — đúng như mong đợi
+                    pass
 
         if not movies_data:
             return
@@ -71,7 +96,10 @@ def task_reconcile_movie_data():
                 logger.info("[Đã vá ES] Phát lệnh sync cho phim %s.", movie["id"])
 
             # ── KHÂU 2: ĐỐI SOÁT REDIS CACHE ────────────────────────────────
-            cache_key = f"movie:detail:{movie['slug_name']}"
+            # Trước đây tự build "movie:detail:{slug}" — THIẾU prefix "movie-cache:"
+            # mà movie_detail_key() thực sự dùng, nên _redis.exists() luôn False
+            # và không bao giờ dọn được cache thối. Dùng lại đúng helper dùng chung.
+            cache_key = movie_detail_key(movie["slug_name"])
 
             if _redis.exists(cache_key):
                 _redis.delete(cache_key)

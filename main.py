@@ -23,7 +23,10 @@ Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    FastAPICache.init(RedisBackend(redis_pool), prefix="fastapi-cache")
+    FastAPICache.init(
+        RedisBackend(redis_pool), 
+        prefix="fastapi-cache"
+    )
     print("Đã kết nối Redis thành công")
     create_movie_index()
     yield
@@ -36,8 +39,8 @@ origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"]
 )

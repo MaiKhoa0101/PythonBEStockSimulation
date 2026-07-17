@@ -62,6 +62,7 @@ class MoviesRepositories(IMoviesRepository):
         return result
     
     async def fetch_movie_detail_by_name_no_auth(self, name: str):
+        print("Goi get no auth")
         db_movie = self.db.query(MovieModel).options(
             joinedload(MovieModel.actors),
             joinedload(MovieModel.directors),
@@ -116,13 +117,7 @@ class MoviesRepositories(IMoviesRepository):
         self.db.commit()
         self.db.refresh(db_movie)
 
-        # 3. Cập nhật lại những thông tin tự sinh từ DB vào Entity hiện tại
-        movie_entity.id = db_movie.id
-        movie_entity.created_at = db_movie.created_at
-        movie_entity.updated_at = db_movie.updated_at
-        
-        # 4. Trả Entity hoàn chỉnh ngược lên cho Service
-        return movie_entity
+        return await self.fetch_movie_detail_by_id(movie_entity.id)
 
     async def update_entire_movie(self, movie_entity: Movie, category_ids: List[str] = None):
         db_movie = self.db.query(MovieModel).filter(
@@ -155,7 +150,7 @@ class MoviesRepositories(IMoviesRepository):
         movie_entity.created_at = db_movie.created_at
         movie_entity.updated_at = db_movie.updated_at
 
-        return movie_entity
+        return await self.fetch_movie_detail_by_id(movie_entity.id)
         
     async def patch_movie(self, movie_entity, category_ids: List[str] = None):
         try:
@@ -174,7 +169,7 @@ class MoviesRepositories(IMoviesRepository):
                     setattr(db_movie, k, v)
 
             if movie_entity.episodes is not None:
-                await self._replace_episodes(db_movie, movie_entity.episodes)
+                await self.upsert_episode(movie_entity)
 
             # PATCH = chỉ đụng vào category khi FE thực sự gửi category_ids
             # (None nghĩa là FE không gửi field này, giữ nguyên category cũ)
@@ -184,34 +179,13 @@ class MoviesRepositories(IMoviesRepository):
             self.db.commit()
             self.db.refresh(db_movie)
 
-            movie_entity.id = db_movie.id
-            movie_entity.created_at = db_movie.created_at
-            movie_entity.updated_at = db_movie.updated_at
-    
-            return movie_entity
+            return await self.fetch_movie_detail_by_id(movie_entity.id)
 
         except Exception as e:
             self.db.rollback() 
             raise Exception(f"Lỗi patch movie: {str(e)}")
 
 
-    async def _replace_episodes(self, db_movie: MovieModel, new_episodes: List[Episode]) -> None:
-        self.db.query(EpisodeModel).filter(
-            EpisodeModel.id_movie == db_movie.id
-        ).delete(synchronize_session=False)
-
-        for ep in new_episodes:
-            db_ep = EpisodeModel(
-                id_movie=db_movie.id,
-                name_episode=ep.name_episode,
-                slug=ep.slug,
-                filename=ep.filename,
-                link_embed=ep.link_embed,
-                link_m3u8=ep.link_m3u8,
-                server_name=ep.server_name,
-                description=ep.description,
-            )
-            self.db.add(db_ep)
             
     async def upsert_episode(self, movie_entity):
         db_movie = self.db.query(MovieModel).filter(
@@ -297,6 +271,7 @@ class MoviesRepositories(IMoviesRepository):
             raise Exception(f"Lỗi Database: {str(e)}")
         
     async def get_url_episode(self, id_episode: str):
+        print ("Gọi get_url_episode với id_episode: ", id_episode)
         db_episode = self.db.query(EpisodeModel).filter(
             EpisodeModel.id == id_episode
         ).first()
