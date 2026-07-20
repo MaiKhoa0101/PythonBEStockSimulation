@@ -1,3 +1,5 @@
+from typing import Optional
+
 from slugify import slugify
 
 from src.application.interfaces.external_services.movie_api_gateway_interface import IMovieApiGateway
@@ -14,9 +16,9 @@ class GetListMovies(IGetListMoviesService):
         self.movie_repository = movie_repository
         self.movie_external_service = movie_external_service
 
-    async def fetch_movies_list(self, page:int =1, size:int=30 ):
+    async def fetch_movies_list(self, page:int =1, size:int=30, q: Optional[str] = None ):
         print(" Vào được đây")
-        data = await self.movie_repository.fetch_movies_list(page,size)
+        data = await self.movie_repository.fetch_movies_list(page,size,q)
         if not data:
             data = await self.movie_external_service.fetch_movies_list()
             if not data: 

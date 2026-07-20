@@ -1,4 +1,4 @@
-from typing import Protocol, Any
+from typing import Optional, Protocol, Any
 
 from fastapi import BackgroundTasks, UploadFile
 
@@ -7,7 +7,7 @@ from src.presentation.dtos.movie_dto import MovieCreateDTO, MoviePatchDTO, Movie
 
 class IGetListMoviesService(Protocol): 
     #ep kieu tra ve
-    async def fetch_movies_list(page:int , size:int) -> list[Movie]:
+    async def fetch_movies_list(page:int , size:int, q: Optional[str] = None) -> list[Movie]:
         ... 
 class IGetMoviesDetailByName(Protocol):
     async def fetch_movie_detail_by_name(name: str) -> Any:

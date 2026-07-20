@@ -7,7 +7,7 @@ from src.domain.entities.movies.movie import Movie
 
 
 class IMoviesRepository(Protocol):
-    async def fetch_movies_list(self):
+    async def fetch_movies_list(self,page, size, q):
         ...
 
     async def fetch_movie_detail_by_name(

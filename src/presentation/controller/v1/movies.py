@@ -1,5 +1,7 @@
 # src/presentation/controller/movie_controller.py
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, UploadFile
+from typing import Optional
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, Query, UploadFile
 from fastapi.encoders import jsonable_encoder
 
 
@@ -46,9 +48,10 @@ require_admin          = RoleChecker(["admin"])
 async def api_get_movie_list(
     page: int = 1,
     size: int = 20,
+    q: Optional[str] = Query(None, description="Từ khóa tìm kiếm phim"),
     getListMovieService: IGetListMoviesService = Depends(IGetListMoviesServiceDependency),
 ):
-    result = await getListMovieService.fetch_movies_list(page=page, size=size)
+    result = await getListMovieService.fetch_movies_list(page=page, size=size, q=q)
     if result:
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Lấy danh sách không thành công"}

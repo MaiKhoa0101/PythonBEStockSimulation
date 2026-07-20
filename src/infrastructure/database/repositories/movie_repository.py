@@ -10,7 +10,7 @@ from src.infrastructure.database.models.movies.movie_model import EpisodeModel, 
 from src.infrastructure.database.models.categories.categories import CategoryModel
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import inspect as sa_inspect
+from sqlalchemy import inspect as sa_inspect, or_
 
 class MoviesRepositories(IMoviesRepository):
     def __init__(self, db: Session): 
@@ -106,11 +106,22 @@ class MoviesRepositories(IMoviesRepository):
         )
         return row[0] if row else None
     
-    async def fetch_movies_list(self, page: int = 1, size: int = 20) -> dict:
+    async def fetch_movies_list(self, page: int = 1, size: int = 20, q: Optional[str] = None) -> dict:
         query = self.db.query(MovieModel).filter(
             MovieModel.is_deleted == False
         )
+        
+        if q and q.strip():
+            search_pattern = f"%{q.strip()}%"
+            query = query.filter(
+                or_(
+                    MovieModel.name.ilike(search_pattern),        # Tìm theo tên tiếng Việt
+                    MovieModel.origin_name.ilike(search_pattern) # Tìm theo tên gốc
+                )
+            )
+
         total = query.count()
+        
         db_movies = (
             query
             .order_by(MovieModel.created_at.desc())
@@ -128,7 +139,7 @@ class MoviesRepositories(IMoviesRepository):
 
         return {"total": total, "page": page, "size": size, "results": results}
     
-    
+
     async def fetch_movie_detail_by_name(self, name: str):
         db_movie = self.db.query(MovieModel).options(
             joinedload(MovieModel.actors),
