@@ -24,3 +24,10 @@ class IAnalyticsRepository(Protocol):
 
     def get_genres_distribution(self) -> List[dict]:
         ...
+    def fetch_user_subscription_trends(
+        self,
+        start_date:  Optional[date],
+        end_date:    Optional[date],
+        granularity: Granularity = "day",
+    ) -> List[dict]:
+        ...

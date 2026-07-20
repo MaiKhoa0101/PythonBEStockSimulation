@@ -1,7 +1,8 @@
-# src/infracstructure/services/analytics_service/analytics_service.py
 
 from datetime import date
 from typing import Optional
+
+from fastapi.concurrency import run_in_threadpool
 
 from src.application.interfaces.repositories.analytics_repository_interface import IAnalyticsRepository
 from src.application.interfaces.services.analytics_service_interface import IAnalyticsService
@@ -10,6 +11,8 @@ from src.presentation.dtos.analytics_dto import (
     DistributionResponse,
     TopTrendingItem,
     TopTrendingResponse,
+    TrendPointDTO,
+    UserSubTrendsResponseDTO,
     ViewsOverviewItem,
     ViewsOverviewResponse,
 )
@@ -17,7 +20,7 @@ from src.presentation.dtos.analytics_dto import (
 
 class AnalyticsService(IAnalyticsService):
     def __init__(self, repository: IAnalyticsRepository):
-        self._repo = repository
+        self.repository = repository
 
     async def get_top_trending(
         self,
@@ -26,7 +29,7 @@ class AnalyticsService(IAnalyticsService):
         page:       int,
         size:       int,
     ) -> TopTrendingResponse:
-        rows, total = self._repo.get_top_trending(start_date, end_date, page, size)
+        rows, total = self.repository.get_top_trending(start_date, end_date, page, size)
         total_pages = (total + size - 1) // size if size else 0
 
         return TopTrendingResponse(
@@ -58,7 +61,7 @@ class AnalyticsService(IAnalyticsService):
         ValueError nếu giá trị không hợp lệ (controller nên chặn từ trước
         bằng kiểu Literal, xem analytics_controller.py).
         """
-        rows = self._repo.get_views_overview(start_date, end_date, granularity)
+        rows = self.repository.get_views_overview(start_date, end_date, granularity)
 
         return ViewsOverviewResponse(
             start_date=start_date,
@@ -76,7 +79,7 @@ class AnalyticsService(IAnalyticsService):
         )
 
     async def get_genres_distribution(self) -> DistributionResponse:
-        rows = self._repo.get_genres_distribution()
+        rows = self.repository.get_genres_distribution()
 
         total = sum(r["value"] for r in rows) or 1 
         return DistributionResponse(
@@ -89,4 +92,32 @@ class AnalyticsService(IAnalyticsService):
                 )
                 for r in rows
             ],
+        )
+
+
+    async def get_user_subscription_trends(
+        self, start_date: str, end_date: str, granularity: str
+    ) -> UserSubTrendsResponseDTO:
+        entities = await run_in_threadpool(
+            self.repository.fetch_user_subscription_trends,
+            start_date,
+            end_date,
+            granularity,
+        )
+
+        items = [
+            TrendPointDTO(
+                date=entity.bucket_date.isoformat(),
+                new_users=entity.new_users,
+                new_subscriptions=entity.new_subscriptions,
+                unsubscriptions=entity.unsubscriptions,
+            )
+            for entity in entities
+        ]
+
+        return UserSubTrendsResponseDTO(
+            granularity=granularity,
+            start_date=start_date,
+            end_date=end_date,
+            items=items,
         )

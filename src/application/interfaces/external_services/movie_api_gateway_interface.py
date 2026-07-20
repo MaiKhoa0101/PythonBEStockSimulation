@@ -3,6 +3,9 @@ from typing import Protocol
 
 
 class IMovieApiGateway(Protocol):
+
+    async def fetch_movies_list_paginated(list_type: str,page:int):
+        ...
     async def fetch_movies_list(self):
         ...
 

@@ -44,30 +44,30 @@ require_admin          = RoleChecker(["admin"])
 
 @router.get("/")
 async def api_get_movie_list(
+    page: int = 1,
+    size: int = 20,
     getListMovieService: IGetListMoviesService = Depends(IGetListMoviesServiceDependency),
 ):
-    result = await getListMovieService.fetch_movies_list()
+    result = await getListMovieService.fetch_movies_list(page=page, size=size)
     if result:
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Lấy danh sách không thành công"}
 
-
 @router.get("/listhome")
-async def api_get_movie_list_home(redis=Depends(get_redis_client)):
-    cache_key = movie_list_home_key()
+async def api_get_movie_list_home(page: int = 1, size: int = 20, redis=Depends(get_redis_client)):
+    cache_key = f"{movie_list_home_key()}:page:{page}"  
 
     cached = await cache_get_json(redis, cache_key)
     if cached is not None:
         return {"status": "Success", "data": cached}
 
-    result = fetch_movies_list_home_from_es(page=1, size=20)
+    result = fetch_movies_list_home_from_es(page=page, size=size) 
     if result:
         serializable_data = jsonable_encoder(result)
         await cache_set_json(redis, cache_key, serializable_data, expire=120)
         return {"status": "Success", "data": serializable_data}
 
     return {"status": "Failed", "data": "Lấy danh sách không thành công"}
-
 
 @router.get("/search")
 def api_search_movies(q: str):
@@ -88,7 +88,7 @@ async def api_get_movie_detail_by_name(name: str, redis=Depends(get_redis_client
     result = get_movie_by_slug_from_es(name)
     if result:
         serializable_data = jsonable_encoder(result)
-        await cache_set_json(redis, cache_key, serializable_data, expire=300)
+        await cache_set_json(redis, cache_key, serializable_data, expire=60)
         return {"status": "Success", "data": serializable_data}
 
     return {"status": "Failed", "data": "Tìm không thành công"}

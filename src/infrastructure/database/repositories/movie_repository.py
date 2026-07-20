@@ -1,6 +1,8 @@
-from typing import List
+from typing import List, Optional
 from dataclasses import asdict
 
+from src.infrastructure.database.models.imdb.imdb import MovieExternalIdsModel
+from src.infrastructure.database.models.country.country import CountryModel
 from src.infrastructure.database.utils.mapping import entity_to_model, model_to_entity
 from src.presentation.dtos.movie_dto import MovieCreateDTO
 from src.domain.entities.movies.movie import Episode, Movie
@@ -23,20 +25,109 @@ class MoviesRepositories(IMoviesRepository):
             .filter(CategoryModel.id.in_(category_ids))
             .all()
         )
+
+    def _resolve_countries(self, country_ids: List[str]) -> List["CountryModel"]:
+        """Tương tự _resolve_categories nhưng cho Country — TRƯỚC ĐÂY KHÔNG TỒN TẠI,
+        khiến create_movie không bao giờ gán được country cho phim (bug #2)."""
+        if not country_ids:
+            return []
+        return (
+            self.db.query(CountryModel)
+            .filter(CountryModel.id.in_(country_ids))
+            .all()
+        )
+
+    # ── Dùng riêng cho luồng sync từ nguồn ngoài (phimapi...) ────────────────
+    # Khác _resolve_categories/_resolve_countries (chỉ lookup, dùng cho luồng
+    # admin tạo/sửa phim tay — FE luôn gửi id nội bộ có sẵn), 2 hàm dưới đây
+    # nhận list {"name":..., "slug":...} thô từ API ngoài, TỰ TẠO MỚI record
+    # nếu slug chưa có trong DB, rồi trả về id nội bộ tương ứng.
+    async def get_or_create_categories(self, categories: List[dict]) -> List[str]:
+        if not categories:
+            return []
+        slugs = [c["slug"] for c in categories if c.get("slug")]
+        if not slugs:
+            return []
+        existed = (
+            self.db.query(CategoryModel)
+            .filter(CategoryModel.slug.in_(slugs))
+            .all()
+        )
+        existed_by_slug = {c.slug: c for c in existed}
+
+        result_ids: List[str] = []
+        for c in categories:
+            slug = c.get("slug")
+            if not slug:
+                continue
+            model = existed_by_slug.get(slug)
+            if not model:
+                model = CategoryModel(name=c.get("name") or slug, slug=slug)
+                self.db.add(model)
+                self.db.flush()  # cần id ngay để dùng, chưa commit vội
+                existed_by_slug[slug] = model
+            result_ids.append(model.id)
+        return result_ids
+
+    async def get_or_create_countries(self, countries: List[dict]) -> List[str]:
+        if not countries:
+            return []
+        slugs = [c["slug"] for c in countries if c.get("slug")]
+        if not slugs:
+            return []
+        existed = (
+            self.db.query(CountryModel)
+            .filter(CountryModel.slug.in_(slugs))
+            .all()
+        )
+        existed_by_slug = {c.slug: c for c in existed}
+
+        result_ids: List[str] = []
+        for c in countries:
+            slug = c.get("slug")
+            if not slug:
+                continue
+            model = existed_by_slug.get(slug)
+            if not model:
+                model = CountryModel(name=c.get("name") or slug, slug=slug)
+                self.db.add(model)
+                self.db.flush()
+                existed_by_slug[slug] = model
+            result_ids.append(model.id)
+        return result_ids
+
+    async def find_movie_id_by_slug(self, slug_name: str) -> Optional[str]:
+        """Check tồn tại theo slug_name (UNIQUE) — dùng để task sync biết phim
+        đã có hay chưa mà không cần load hết relationship như fetch_movie_detail_by_name."""
+        row = (
+            self.db.query(MovieModel.id)
+            .filter(MovieModel.slug_name == slug_name, MovieModel.is_deleted == False)
+            .first()
+        )
+        return row[0] if row else None
     
-    async def fetch_movies_list(self):
-        db_movies = self.db.query(MovieModel).filter(
+    async def fetch_movies_list(self, page: int = 1, size: int = 20) -> dict:
+        query = self.db.query(MovieModel).filter(
             MovieModel.is_deleted == False
-        ).all() 
-        result = [
+        )
+        total = query.count()
+        db_movies = (
+            query
+            .order_by(MovieModel.created_at.desc())
+            .offset((page - 1) * size)
+            .limit(size)
+            .all()
+        )
+        results = [
             model_to_entity(
                 db_movie,
                 Movie
             )
             for db_movie in db_movies
         ]
-        
-        return result
+
+        return {"total": total, "page": page, "size": size, "results": results}
+    
     
     async def fetch_movie_detail_by_name(self, name: str):
         db_movie = self.db.query(MovieModel).options(
@@ -94,7 +185,7 @@ class MoviesRepositories(IMoviesRepository):
         ).first()
         return db_movie
 
-    async def create_movie(self, movie_entity: Movie, category_ids: List[str] = None) -> Movie:
+    async def create_movie(self, movie_entity: Movie, category_ids: List[str] = None, country_ids: List[str] = None) -> Movie:
         print(f"Gọi create repo với {movie_entity}")
         
         # 1. Map từ Entity sang Database Model
@@ -108,14 +199,30 @@ class MoviesRepositories(IMoviesRepository):
             db_episode = entity_to_model(ep_entity, EpisodeModel, exclude={"id", "id_movie", "created_at", "updated_at"})
             db_movie.episodes.append(db_episode)
 
-        # Gán categories: category_ids lấy trực tiếp từ DTO ở tầng service, truyền
-        # riêng xuống đây (không đi qua entity) vì entity chỉ giữ full Category object.
+        # Gán categories/countries: *_ids lấy trực tiếp từ DTO ở tầng service, truyền
+        # riêng xuống đây (không đi qua entity) vì entity chỉ giữ full Category/Country object.
         db_movie.categories = self._resolve_categories(category_ids)
+        db_movie.countries = self._resolve_countries(country_ids)  # (bug #2) trước đây bị bỏ sót hoàn toàn
+
+        # (bug #3) external_ids trước đây bị exclude khi map + không có chỗ nào tạo
+        # MovieExternalIdsModel — dữ liệu tmdb/imdb nhập vào bị rơi mất im lặng.
+        if movie_entity.external_ids:
+            db_movie.external_ids = entity_to_model(
+                movie_entity.external_ids,
+                MovieExternalIdsModel,
+                exclude={"id", "id_movie"},
+            )
 
         # 2. Lưu xuống MySQL
         self.db.add(db_movie)
         self.db.commit()
         self.db.refresh(db_movie)
+
+        # (bug #5) movie_entity.id vẫn là "" (giá trị override lúc tạo entity) nếu
+        # không gán lại ở đây — khiến fetch_movie_detail_by_id bên dưới tìm theo id
+        # rỗng và luôn trả None dù insert đã thành công. update_entire_movie đã làm
+        # đúng việc gán lại này, create_movie thì thiếu.
+        movie_entity.id = db_movie.id
 
         return await self.fetch_movie_detail_by_id(movie_entity.id)
 
@@ -198,9 +305,18 @@ class MoviesRepositories(IMoviesRepository):
                 existed_ep = None
 
                 for db_ep in db_movie.episodes:
-                    if (episode.id and episode.id == db_ep.id) or (episode.slug and episode.slug == db_ep.slug):
+                    # (fix) match chỉ theo slug bị đụng hàng khi 1 phim có NHIỀU
+                    # SERVER (VD: Vietsub + Thuyết Minh) — mỗi server đều đánh số
+                    # tập lại từ "tap-1", nên slug KHÔNG unique nếu thiếu server_name
+                    # đi kèm. Trước đây match sai sẽ khiến 2 server ghi đè lẫn nhau.
+                    same_id = episode.id and episode.id == db_ep.id
+                    same_slug_and_server = (
+                        episode.slug and episode.slug == db_ep.slug
+                        and episode.server_name == db_ep.server_name
+                    )
+                    if same_id or same_slug_and_server:
                         existed_ep = db_ep
-                        break  # ← đúng chỗ
+                        break
                 
                 
                 if existed_ep:

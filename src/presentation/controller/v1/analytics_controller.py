@@ -4,7 +4,9 @@ from datetime import date
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.encoders import jsonable_encoder
 
+from src.infrastructure.services.logs.admin_log_service import write_audit_log
 from src.application.interfaces.services.analytics_service_interface import IAnalyticsService
 from src.infrastructure.security.author import RoleChecker
 from src.presentation.controller.dependencies import IAnalyticsServiceDependency
@@ -66,3 +68,25 @@ async def api_genres_distribution(
     service: IAnalyticsService = Depends(IAnalyticsServiceDependency),
 ):
     return await service.get_genres_distribution()
+
+
+
+@router.get("/user-subscription-trends")
+async def api_get_user_subscription_trends(
+    startDate: str = Query(..., description="Ngày bắt đầu, định dạng YYYY-MM-DD"),
+    endDate: str = Query(..., description="Ngày kết thúc, định dạng YYYY-MM-DD"),
+    granularity: str = Query("day", pattern="^(day|week|month)$"),
+    current_user_id: str = Depends(require_admin.check),
+    service: IAnalyticsService = Depends(IAnalyticsServiceDependency),
+):
+    result = await service.get_user_subscription_trends(startDate, endDate, granularity)
+
+    write_audit_log(
+        action="VIEW_ANALYTICS",
+        admin_id=current_user_id,
+        movie_id="N/A",
+        movie_title="user-subscription-trends",
+        new_values={"startDate": startDate, "endDate": endDate, "granularity": granularity},
+    )
+
+    return {"status": "Success", "data": jsonable_encoder(result)}

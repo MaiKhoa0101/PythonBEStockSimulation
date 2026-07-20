@@ -51,7 +51,7 @@ class TransactionService(ITransactionService):
 
         new_transaction = Transaction(
             amount=package.price,
-            status="PENDING",
+            status="SUCCESS",
             user_id=user_id,
             package_id=package_id
         )

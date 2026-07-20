@@ -5,6 +5,7 @@ from src.presentation.dtos.analytics_dto import (
     DistributionResponse,
     Granularity,
     TopTrendingResponse,
+    UserSubTrendsResponseDTO,
     ViewsOverviewResponse,
 )
 
@@ -29,3 +30,11 @@ class IAnalyticsService(Protocol):
 
     async def get_genres_distribution(self) -> DistributionResponse:
         ...
+
+    async def get_user_subscription_trends(
+        self, start_date: str, end_date: str, granularity: str
+    ) -> UserSubTrendsResponseDTO:
+        """Trả về xu hướng người dùng mới / đăng ký / hủy gói theo trục thời gian."""
+        raise NotImplementedError
+    
+# src/application/interfaces/services/analytics_service_interface.py

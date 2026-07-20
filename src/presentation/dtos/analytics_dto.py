@@ -56,3 +56,21 @@ class DistributionItem(BaseModel):
 class DistributionResponse(BaseModel):
     total_movies: int
     items:        List[DistributionItem]
+
+
+class TrendPointDTO(BaseModel):
+    """Một mốc dữ liệu trên trục thời gian, dùng để vẽ 3 đường Line ở FE."""
+
+    date: str = Field(..., description="Mốc thời gian dạng ISO date (YYYY-MM-DD)")
+    new_users: int = Field(0, description="Số người dùng mới trong khoảng thời gian này")
+    new_subscriptions: int = Field(0, description="Số giao dịch đăng ký gói thành công")
+    unsubscriptions: int = Field(0, description="Số giao dịch hủy gói / hoàn tiền")
+
+
+class UserSubTrendsResponseDTO(BaseModel):
+    """Response DTO trả về từ endpoint /analytics/user-subscription-trends."""
+
+    granularity: str = Field(..., description="Đơn vị gộp nhóm: day | week | month")
+    start_date: str
+    end_date: str
+    items: List[TrendPointDTO] = Field(default_factory=list)

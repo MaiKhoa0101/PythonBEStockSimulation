@@ -23,7 +23,8 @@ celery_instance = Celery(
         "src.infrastructure.celery.elastic_task_movie",
         "src.infrastructure.celery.reconcile_task",
         "src.infrastructure.celery.aggregate_task",
-        "src.infrastructure.celery.simulate_traffic_task"
+        "src.infrastructure.celery.simulate_traffic_task",
+        "src.infrastructure.celery.sync_movie_task",
     ])
 
 
@@ -58,7 +59,12 @@ celery_instance.conf.update(
             "schedule": 300.0,  
             "kwargs":   {"days_back": 1},  
             "options":  {"queue": "light_queue"},
-        },        
+        },
+        "sync-movies-from-external-every-5min": {
+            "task":     "tasks.sync_movies_from_external",
+            "schedule": 1000.0,
+            "options":  {"queue": "heavy_queue"},
+        },
     }
 )
 import src.infrastructure.celery.signal
