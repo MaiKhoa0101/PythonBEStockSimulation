@@ -30,7 +30,17 @@ class CeleryTaskLog(Base):
                          default=TaskStatus.PENDING.value,                 comment="PENDING | STARTED | RETRY | SUCCESS | FAILURE")
     error       = Column(Text,        nullable=True,                       comment="Stack trace đầy đủ khi FAILURE")
     count_retry = Column(Integer,     nullable=False,  default=0,          comment="Số lần task đã retry")
-    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
-    updated_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
     def __repr__(self):
         return f"<CeleryTaskLog id={self.id!r} name={self.name!r} status={self.status!r}>"

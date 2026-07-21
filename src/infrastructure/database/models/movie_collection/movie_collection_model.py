@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import Column,DateTime, ForeignKey,String, Float
@@ -11,7 +12,11 @@ class CollectionModel(Base):
     id = Column(String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String(50), ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     name = Column(String(100), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
 
     items = relationship("CollectionItemModel", back_populates="collection", cascade="all, delete-orphan")
     user = relationship("UserModel", back_populates="collections")

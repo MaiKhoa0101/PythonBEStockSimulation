@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import Boolean, Column, String, DateTime, ForeignKey
 from src.infrastructure.database.session import Base
 from sqlalchemy.orm import relationship
@@ -23,9 +25,19 @@ class UserModel(Base):
     role = Column(String(50),default="user")
     
     # Audit Fields
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )    
     created_by = Column(String(50))
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     updated_by = Column(String(50))
 
 

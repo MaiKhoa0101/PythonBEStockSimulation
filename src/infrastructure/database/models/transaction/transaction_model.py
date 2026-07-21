@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, ForeignKey, String, Integer, DateTime
 from src.infrastructure.database.session import Base
 from sqlalchemy.orm import relationship
@@ -13,7 +13,12 @@ class TransactionModel(Base):
     status = Column(String(50), default="PENDING")
     payment_method = Column(String(20))
 
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
     user_id = Column(String(50), ForeignKey("user.id"), nullable=False)
     package_id = Column(String(50), ForeignKey("subscription_packages.id"), nullable=False)
 

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import uuid
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String,Integer
 from sqlalchemy.orm import relationship
@@ -24,8 +25,18 @@ class ShortModel(Base):
     view_count = Column(Integer, default= 0)
     
     is_deleted = Column(Boolean, default=False)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     movie = relationship("MovieModel", back_populates="shorts")
     episode = relationship("EpisodeModel", back_populates="shorts")

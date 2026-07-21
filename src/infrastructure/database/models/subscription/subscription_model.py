@@ -1,4 +1,5 @@
 
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import Column, DateTime, Integer, String, Text, func
@@ -14,5 +15,9 @@ class SubscriptionPackageModel(Base):
     price = Column(Integer, nullable=False)            
     duration_days = Column(Integer, nullable=False) 
     description = Column(Text, nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
     transactions = relationship("TransactionModel", back_populates="package")
