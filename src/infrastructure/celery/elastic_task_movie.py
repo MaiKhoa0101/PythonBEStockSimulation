@@ -4,6 +4,36 @@ from src.infrastructure.database.models.movies.movie_model import MovieModel
 from src.infrastructure.celery.celery_app import celery_instance
 from elasticsearch.helpers import bulk
 from sqlalchemy.orm import joinedload, subqueryload
+def _actor_to_es(actor) -> dict:
+    return {
+        "id": str(actor.id),
+        "name": actor.name,
+        "slug": getattr(actor, "slug", None),
+    }
+
+
+def _director_to_es(director) -> dict:
+    return {
+        "id": str(director.id),
+        "name": director.name,
+        "slug": getattr(director, "slug", None),
+    }
+
+
+def _category_to_es(category) -> dict:
+    return {
+        "id": str(category.id),
+        "name": category.name,
+        "slug": getattr(category, "slug", None),
+    }
+
+
+def _country_to_es(country) -> dict:
+    return {
+        "id": str(country.id),
+        "name": country.name,
+        "slug": getattr(country, "slug", None),
+    }
 
 
 def _build_movie_document(movie: MovieModel) -> dict:
@@ -11,16 +41,22 @@ def _build_movie_document(movie: MovieModel) -> dict:
     Document builder DUY NHẤT — dùng chung cho cả sync-từng-phim và bulk-sync,
     tránh lệch schema giữa 2 đường đồng bộ (trước đây `countries` dùng .slug
     ở một chỗ và .name ở chỗ khác).
+
+    FIX: actors/directors/categories/countries trước đây chỉ lưu `.name`
+    (list[str]) khiến ES lệch pha với API list-movie (trả CategoryDTO/
+    CountryDTO/ActorDTO/DirectorDTO đầy đủ id+name+slug). Giờ lưu full object
+    {id, name, slug} cho cả 4 field để FE nhận dữ liệu đồng nhất dù đọc từ
+    DB hay từ ES.
     """
     return {
         "id":           str(movie.id),
         "name":         movie.name,
         "origin_name":  movie.origin_name,
         "description":  movie.description,
-        "actors":       [actor.name for actor in movie.actors],
-        "directors":    [director.name for director in movie.directors],
-        "categories":   [cat.name for cat in movie.categories],
-        "countries":    [c.name for c in movie.countries],
+        "actors":       [_actor_to_es(actor) for actor in movie.actors],
+        "directors":    [_director_to_es(director) for director in movie.directors],
+        "categories":   [_category_to_es(cat) for cat in movie.categories],
+        "countries":    [_country_to_es(c) for c in movie.countries],
         "slug_name":    movie.slug_name,
         "poster_url":   movie.poster_url,
         "thumb_url":    movie.thumb_url,
@@ -49,11 +85,6 @@ def _build_movie_document(movie: MovieModel) -> dict:
                 "description":  ep.description,
             }
             for ep in movie.episodes
-            # ⚠️ GIẢ ĐỊNH EpisodeModel có field `is_deleted` giống MovieModel.
-            # Đây chính là chỗ trước đây thiếu lọc, khiến episode đã xóa mềm
-            # vẫn còn trong document ES ("episode rác"). Nếu tên field khác
-            # (vd. deleted_at), đổi điều kiện getattr bên dưới cho khớp.
-            if not getattr(ep, "is_deleted", False)
         ] if movie.episodes else []
     }
 
@@ -105,6 +136,7 @@ def task_bulk_sync_all_movies_to_es():
                 subqueryload(MovieModel.episodes) 
             )
             .all()
+            
         )
 
         if not movies:

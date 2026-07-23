@@ -12,6 +12,7 @@ from src.application.interfaces.services.movies_service_interface import (
     IDeleteMovie,
     IGetListMoviesService,
     IGetMoviesDetailById,
+    IGetMoviesDetailByName,
     IGetVideoUrlService,
     IPatchMovie,
     IUpdateEntireMovie,
@@ -30,6 +31,7 @@ from src.presentation.controller.dependencies import (
     IDeleteMovieDependency,
     IGetListMoviesServiceDependency,
     IGetMoviesDetailByIdDependency,
+    IGetMoviesDetailByNameDependency,
     IGetVideoUrlServiceDependency,
     IPatchMovieDependency,
     IUpdateEntireMovieDependency,
@@ -49,9 +51,25 @@ async def api_get_movie_list(
     page: int = 1,
     size: int = 20,
     q: Optional[str] = Query(None, description="Từ khóa tìm kiếm phim"),
+    category_id: Optional[str] = Query(None, description="Lọc theo id thể loại"),
+    country_slug: Optional[str] = Query(None, description="Lọc theo slug quốc gia"),
+    status: Optional[str] = Query(None, description="ongoing | completed"),
+    is_series: Optional[bool] = Query(None, description="true = phim bộ, false = phim lẻ"),
+    quality: Optional[str] = Query(None, description="HD | FHD | CAM..."),
+    year: Optional[int] = Query(None, description="Năm phát hành"),
     getListMovieService: IGetListMoviesService = Depends(IGetListMoviesServiceDependency),
 ):
-    result = await getListMovieService.fetch_movies_list(page=page, size=size, q=q)
+    result = await getListMovieService.fetch_movies_list(
+        page=page,
+        size=size,
+        q=q,
+        category_id=category_id,
+        country_slug=country_slug,
+        status=status,
+        is_series=is_series,
+        quality=quality,
+        year=year,
+    )
     if result:
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Lấy danh sách không thành công"}
@@ -81,15 +99,22 @@ def api_search_movies(q: str):
 
 
 @router.get("/name/{name}")
-async def api_get_movie_detail_by_name(name: str, redis=Depends(get_redis_client)):
+async def api_get_movie_detail_by_name(
+    name: str, 
+    # getMoviesDetailByNameService: IGetMoviesDetailByName = Depends(IGetMoviesDetailByNameDependency),
+    redis=Depends(get_redis_client)
+):
     cache_key = movie_detail_key(name)
 
     cached = await cache_get_json(redis, cache_key)
     if cached is not None:
         return {"status": "Success", "data": cached}
-
+    
     result = get_movie_by_slug_from_es(name)
+
+    # result =  getMoviesDetailByNameService.fetch_movie_detail_by_name(name)
     if result:
+        print ("[Get detail by name] Lấy data từ es")
         serializable_data = jsonable_encoder(result)
         await cache_set_json(redis, cache_key, serializable_data, expire=60)
         return {"status": "Success", "data": serializable_data}

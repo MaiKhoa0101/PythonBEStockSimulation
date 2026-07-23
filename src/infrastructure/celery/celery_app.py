@@ -56,13 +56,13 @@ celery_instance.conf.update(
         },
         "simulate-user-traffic-every-5min": {
             "task":     "tasks.simulate_user_traffic",
-            "schedule": 300.0,  
+            "schedule": 900.0,  
             "kwargs":   {"days_back": 1},  
             "options":  {"queue": "light_queue"},
         },
         "sync-movies-from-external-every-5min": {
             "task":     "tasks.sync_movies_from_external",
-            "schedule": 1000.0,
+            "schedule": 2000.0,
             "options":  {"queue": "heavy_queue"},
         },
     }

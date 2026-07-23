@@ -10,7 +10,7 @@ from src.infrastructure.database.models.movies.movie_model import EpisodeModel, 
 from src.infrastructure.database.models.categories.categories import CategoryModel
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import inspect as sa_inspect, or_
+from sqlalchemy import inspect as sa_inspect, or_, and_
 
 class MoviesRepositories(IMoviesRepository):
     def __init__(self, db: Session): 
@@ -106,22 +106,61 @@ class MoviesRepositories(IMoviesRepository):
         )
         return row[0] if row else None
     
-    async def fetch_movies_list(self, page: int = 1, size: int = 20, q: Optional[str] = None) -> dict:
+    async def fetch_movies_list(
+        self,
+        page: int = 1,
+        size: int = 20,
+        q: Optional[str] = None,
+        category_id: Optional[str] = None,
+        country_slug: Optional[str] = None,
+        status: Optional[str] = None,
+        is_series: Optional[bool] = None,
+        quality: Optional[str] = None,
+        year: Optional[int] = None,
+    ) -> dict:
+        print ("Gọi list trong db")
         query = self.db.query(MovieModel).filter(
             MovieModel.is_deleted == False
         )
-        
+
+        conditions = []
+
         if q and q.strip():
             search_pattern = f"%{q.strip()}%"
-            query = query.filter(
+            conditions.append(
                 or_(
                     MovieModel.name.ilike(search_pattern),        # Tìm theo tên tiếng Việt
-                    MovieModel.origin_name.ilike(search_pattern) # Tìm theo tên gốc
+                    MovieModel.origin_name.ilike(search_pattern)  # Tìm theo tên gốc
                 )
             )
 
+        if category_id:
+            # .any() trên relationship many-to-many -> EXISTS subquery, tránh
+            # JOIN trực tiếp có thể sinh trùng dòng nếu phim khớp nhiều điều kiện.
+            conditions.append(MovieModel.categories.any(CategoryModel.id == category_id))
+
+        if country_slug:
+            conditions.append(MovieModel.countries.any(CountryModel.slug == country_slug))
+
+        if status:
+            conditions.append(MovieModel.status == status)
+
+        if is_series is not None:
+            conditions.append(MovieModel.is_series == is_series)
+
+        if quality:
+            conditions.append(MovieModel.quality == quality)
+
+        if year is not None:
+            conditions.append(MovieModel.year == year)
+
+        if conditions:
+            query = query.filter(and_(*conditions))
+
+        # total PHẢI tính sau khi đã áp hết filter ở trên, nếu không phân
+        # trang sẽ tính sai tổng số trang so với kết quả thực tế trả về.
         total = query.count()
-        
+
         db_movies = (
             query
             .order_by(MovieModel.created_at.desc())
