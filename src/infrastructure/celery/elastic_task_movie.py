@@ -1,4 +1,4 @@
-from src.infrastructure.elasticsearch.es_client import es_client, MOVIE_INDEX
+from src.infrastructure.elasticsearch.es_client import es_client, MOVIE_INDEX, recreate_movie_index
 from src.infrastructure.database.session import SessionLocal
 from src.infrastructure.database.models.movies.movie_model import MovieModel
 from src.infrastructure.celery.celery_app import celery_instance
@@ -123,6 +123,7 @@ def sync_movie_to_es(movie_id: str):
 @celery_instance.task(name="tasks.bulk_sync_all_movies_to_es",queue="light_queue")
 def task_bulk_sync_all_movies_to_es():
     db = SessionLocal()
+    recreate_movie_index()
     print("Đồng bộ hàng loạt bắt đầu")
     try:
         movies = (
@@ -136,7 +137,7 @@ def task_bulk_sync_all_movies_to_es():
                 subqueryload(MovieModel.episodes) 
             )
             .all()
-            
+
         )
 
         if not movies:

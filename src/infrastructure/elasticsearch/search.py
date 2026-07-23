@@ -26,8 +26,6 @@ def _parse_hit(hit: dict) -> dict:
         "episodes":     source.get("episodes", []),
         "_score":       hit.get("_score"),
     }
-
-
 def search_movies(query: str, size: int = 20) -> dict:
     response = es_client.search(
         index=MOVIE_INDEX,
@@ -36,16 +34,60 @@ def search_movies(query: str, size: int = 20) -> dict:
             "bool": {
                 "must": [
                     {
-                        "multi_match": {
-                            "query": query,
-                            "fields": [
-                                "name^3",
-                                "origin_name^2",
-                                "description",
-                                "actors",
-                                "directors"
+                        "bool": {
+                            "should": [
+                                # Các field text phẳng — multi_match bình thường vẫn dùng được
+                                {
+                                    "multi_match": {
+                                        "query": query,
+                                        "fields": ["name^3", "origin_name^2", "description"],
+                                        "fuzziness": "AUTO"
+                                    }
+                                },
+                                {
+                                    "nested": {
+                                        "path": "actors",
+                                        "query": {
+                                            "match": {
+                                                "actors.name": {
+                                                    "query": query,
+                                                    "fuzziness": "AUTO"
+                                                }
+                                            }
+                                        },
+                                        "score_mode": "max"
+                                    }
+                                },
+                                {
+                                    "nested": {
+                                        "path": "directors",
+                                        "query": {
+                                            "match": {
+                                                "directors.name": {
+                                                    "query": query,
+                                                    "fuzziness": "AUTO"
+                                                }
+                                            }
+                                        },
+                                        "score_mode": "max"
+                                    }
+                                },
+                                {
+                                    "nested": {
+                                        "path": "countries",
+                                        "query": {
+                                            "match": {
+                                                "countries.name": {
+                                                    "query": query,
+                                                    "fuzziness": "AUTO"
+                                                }
+                                            }
+                                        },
+                                        "score_mode": "max"
+                                    }
+                                }
                             ],
-                            "fuzziness": "AUTO"
+                            "minimum_should_match": 1
                         }
                     }
                 ],
@@ -58,4 +100,24 @@ def search_movies(query: str, size: int = 20) -> dict:
     return {
         "total": response["hits"]["total"]["value"],
         "results": [_parse_hit(hit) for hit in response["hits"]["hits"]]
+    }
+
+
+def _build_category_filter(category_slug: str) -> dict:
+    """Ví dụ filter theo thể loại — cũng phải bọc nested vì categories.slug
+    nằm trong path nested "categories"."""
+    return {
+        "nested": {
+            "path": "categories",
+            "query": {"term": {"categories.slug": category_slug}}
+        }
+    }
+
+
+def _build_country_filter(country_slug: str) -> dict:
+    return {
+        "nested": {
+            "path": "countries",
+            "query": {"term": {"countries.slug": country_slug}}
+        }
     }

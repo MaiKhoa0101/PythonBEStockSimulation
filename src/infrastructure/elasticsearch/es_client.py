@@ -96,16 +96,9 @@ def create_movie_index():
 
 
 def recreate_movie_index():
-    """Xóa index cũ (mapping sai/lỗi thời) và tạo lại với MOVIE_INDEX_MAPPING
-    hiện tại. Dùng khi đổi schema document (như lần sửa categories/countries
-    từ string sang object) — bắt buộc phải xóa vì ES không cho đổi kiểu field
-    đã map sẵn. Gọi xong nhớ chạy lại bulk sync để nạp lại toàn bộ dữ liệu."""
+    print(f"[Elasticsearch] Xóa index '{MOVIE_INDEX}' cũ và tạo lại với mapping mới")
     if es_client.indices.exists(index=MOVIE_INDEX):
         es_client.indices.delete(index=MOVIE_INDEX)
         print(f"[Elasticsearch] Đã xóa index cũ '{MOVIE_INDEX}'")
     es_client.indices.create(index=MOVIE_INDEX, body=MOVIE_INDEX_MAPPING)
     print(f"[Elasticsearch] Đã tạo lại index '{MOVIE_INDEX}' với mapping mới")
-
-
-if __name__ == "__main__":
-    recreate_movie_index()
