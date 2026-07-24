@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict, List, Optional, Protocol, Tuple
 
 from sqlalchemy.orm import Session
@@ -13,6 +14,10 @@ class ILogRepository(Protocol):
         size: int,
         status: Optional[str] = None,
         name: Optional[str] = None,
+        created_from: Optional[datetime] = None,
+        created_to: Optional[datetime] = None,
+        updated_from: Optional[datetime] = None,
+        updated_to: Optional[datetime] = None,
     ) -> Tuple[List[CeleryTaskLog], int]:
         """Trả về (danh sách record của trang hiện tại, tổng số record khớp filter)."""
         raise NotImplementedError

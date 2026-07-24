@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from typing import Dict, Optional
 
 from src.application.interfaces.repositories.log_repository_interface import ILogRepository
@@ -17,8 +18,18 @@ class LogService(ILogService):
         size: int = 20,
         status: Optional[str] = None,
         name: Optional[str] = None,
+        created_from: Optional[datetime] = None,
+        created_to: Optional[datetime] = None,
+        updated_from: Optional[datetime] = None,
+        updated_to: Optional[datetime] = None,
     ) -> dict:
-        items, total = self._repository.get_paginated(page, size, status, name)
+        items, total = self._repository.get_paginated(
+            page, size, status, name,
+            created_from=created_from,
+            created_to=created_to,
+            updated_from=updated_from,
+            updated_to=updated_to,
+        )
         total_pages = (total + size - 1) // size if size else 0
 
         return {
@@ -59,7 +70,7 @@ class LogService(ILogService):
         try:
             return json.loads(raw)
         except (json.JSONDecodeError, TypeError):
-            return raw 
+            return raw
 
     @classmethod
     def _serialize_detail(cls, log: CeleryTaskLog) -> dict:

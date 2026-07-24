@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -16,10 +17,23 @@ async def api_get_log_list(
     size: int = Query(20, ge=1, le=100, description="Số record mỗi trang, tối đa 100"),
     status: Optional[str] = Query(None, description="PENDING|STARTED|RETRY|SUCCESS|FAILURE"),
     name: Optional[str] = Query(None, description="Lọc theo tên task (tìm gần đúng)"),
+    created_from: Optional[datetime] = Query(None, description="Lọc created_at >= (ISO 8601)"),
+    created_to: Optional[datetime] = Query(None, description="Lọc created_at <= (ISO 8601)"),
+    updated_from: Optional[datetime] = Query(None, description="Lọc updated_at >= (ISO 8601)"),
+    updated_to: Optional[datetime] = Query(None, description="Lọc updated_at <= (ISO 8601)"),
     current_user_id: str = Depends(require_admin.check),
     logService: ILogService = Depends(ILogServiceDependency),
 ):
-    result = await logService.fetch_list(page=page, size=size, status=status, name=name)
+    if created_from and created_to and created_from > created_to:
+        raise HTTPException(status_code=400, detail="created_from phải trước created_to")
+    if updated_from and updated_to and updated_from > updated_to:
+        raise HTTPException(status_code=400, detail="updated_from phải trước updated_to")
+
+    result = await logService.fetch_list(
+        page=page, size=size, status=status, name=name,
+        created_from=created_from, created_to=created_to,
+        updated_from=updated_from, updated_to=updated_to,
+    )
     if result:
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Lấy danh sách không thành công"}

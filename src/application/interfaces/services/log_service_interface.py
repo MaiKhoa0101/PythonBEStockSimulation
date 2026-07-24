@@ -1,5 +1,6 @@
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Dict, Optional, Protocol
 
 
@@ -10,6 +11,10 @@ class ILogService(Protocol):
         size: int = 20,
         status: Optional[str] = None,
         name: Optional[str] = None,
+        created_from: Optional[datetime] = None,
+        created_to: Optional[datetime] = None,
+        updated_from: Optional[datetime] = None,
+        updated_to: Optional[datetime] = None,
     ) -> dict:
             """
             Lấy danh sách CeleryTaskLog có phân trang, kèm filter tuỳ chọn.

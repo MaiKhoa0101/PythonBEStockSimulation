@@ -29,6 +29,7 @@ Granularity = Literal["minute", "hour", "day", "week", "month"]
     summary="Chart Cột — Top phim theo lượt xem",
 )
 async def api_top_trending(
+    current_user_id: str = Depends(require_admin.check),
     start_date: Optional[date] = Query(None, description="Lọc từ ngày (vd: 2026-01-01)"),
     end_date:   Optional[date] = Query(None, description="Lọc đến ngày (vd: 2026-07-06)"),
     page:       int            = Query(1,    ge=1),
@@ -36,6 +37,13 @@ async def api_top_trending(
     _:          str            = Depends(require_admin.check),
     service:    IAnalyticsService = Depends(IAnalyticsServiceDependency),
 ):
+    write_audit_log(
+        action="VIEW_TOP_TRENDING",
+        admin_id=current_user_id,
+        movie_id="N/A",
+        movie_title="N/A",
+        new_values={"startDate": start_date, "endDate": end_date, "granularity": ""},
+    )
     return await service.get_top_trending(start_date, end_date, page, size)
 
 
@@ -45,6 +53,7 @@ async def api_top_trending(
     summary="Chart Đường / Miền — Xu hướng theo thời gian",
 )
 async def api_views_overview(
+    current_user_id: str = Depends(require_admin.check),
     start_date:  Optional[date] = Query(None, description="Lọc từ ngày (vd: 2026-01-01)"),
     end_date:    Optional[date] = Query(None, description="Lọc đến ngày (vd: 2026-07-06)"),
     granularity: Granularity    = Query(
@@ -55,6 +64,13 @@ async def api_views_overview(
     _:          str              = Depends(require_admin.check),
     service:    IAnalyticsService = Depends(IAnalyticsServiceDependency),
 ):
+    write_audit_log(
+        action="VIEW_MOVIE_OVERVIEW",
+        admin_id=current_user_id,
+        movie_id="N/A",
+        movie_title="N/A",
+        new_values={"startDate": start_date, "endDate": end_date, "granularity": granularity},
+    )
     return await service.get_views_overview(start_date, end_date, granularity)
 
 
@@ -82,7 +98,7 @@ async def api_get_user_subscription_trends(
     result = await service.get_user_subscription_trends(startDate, endDate, granularity)
 
     write_audit_log(
-        action="VIEW_ANALYTICS",
+        action="VIEW_SUBSCRIPTION",
         admin_id=current_user_id,
         movie_id="N/A",
         movie_title="user-subscription-trends",

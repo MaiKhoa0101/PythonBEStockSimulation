@@ -1,5 +1,6 @@
-services:
+version: '3.8'
 
+services:
   redis:
     image: redis:alpine
     ports:
@@ -19,11 +20,12 @@ services:
     networks:
       - app_network
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]     
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]    
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 30s 
+
   postgres:
     image: postgres:16-alpine
     container_name: pythoncourses-postgres-1
@@ -43,6 +45,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
   api:
     build: .
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
@@ -66,43 +69,43 @@ services:
       - app_network
 
   worker_light:
-      build: .
-      command: celery -A src.infrastructure.celery.celery_app.celery_instance worker -Q light_queue --loglevel=info
-      volumes:
-        - .:/app
-      env_file:
-        - .env
-      depends_on:
-        mysql:
-          condition: service_healthy
-        redis:
-          condition: service_started
-        elasticsearch:
-          condition: service_healthy
-        postgres:                   
-          condition: service_healthy
-      networks:
-        - app_network
+    build: .
+    command: celery -A src.infrastructure.celery.celery_app.celery_instance worker -Q light_queue --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+      postgres:                   
+        condition: service_healthy
+    networks:
+      - app_network
 
   worker_heavy:
-      build: .
-      command: celery -A src.infrastructure.celery.celery_app.celery_instance worker -Q heavy_queue --loglevel=info --concurrency=1
-      volumes:
-        - .:/app
-        - ./media:/app/media 
-      env_file:
-        - .env
-      depends_on:
-        mysql:
-          condition: service_healthy
-        redis:
-          condition: service_started
-        elasticsearch:
-          condition: service_healthy
-        postgres:                        
-          condition: service_healthy
-      networks:
-        - app_network
+    build: .
+    command: celery -A src.infrastructure.celery.celery_app.celery_instance worker -Q heavy_queue --loglevel=info --concurrency=1
+    volumes:
+      - .:/app
+      - ./media:/app/media 
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+      postgres:                        
+        condition: service_healthy
+    networks:
+      - app_network
         
   flower:
     build: .
@@ -127,6 +130,7 @@ services:
       - redis
     networks:
       - app_network
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
     environment:
@@ -146,11 +150,41 @@ services:
       retries: 15
       start_period: 40s
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: movie_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_DEFAULT_INSTANCE_NAME=MovieAnalytics
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - app_network
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.0
+    container_name: movie_kibana
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - app_network
+
 networks:
   app_network:
     driver: bridge
 
 volumes:
+  grafana_data:
   mysql_data:
   es_data:
   postgres_data:
