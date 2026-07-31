@@ -1,7 +1,7 @@
  # Cấu hình kết nối DB
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, declarative_base, sessionmaker
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,8 +25,8 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 #Bản gốc
-Base = declarative_base()
-
+class Base(DeclarativeBase):
+    pass
 # Hàm để lấy database session, 
 # dùng trong dependency injection của FastAPI
 def get_db():

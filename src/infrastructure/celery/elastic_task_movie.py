@@ -68,9 +68,7 @@ def _build_movie_document(movie: MovieModel) -> dict:
         "lang":         movie.lang,
         "is_series":    movie.is_series,
         "chieurap":     movie.chieurap,
-        # Cần field này để reconcile_task.py so sánh độ mới của ES vs DB —
-        # trước đây field này không tồn tại nên phép so sánh trong reconcile
-        # luôn coi ES là "cũ", làm cho logic đối soát vô nghĩa.
+       
         "updated_at":   movie.updated_at.isoformat() if movie.updated_at else None,
 
         "episodes": [

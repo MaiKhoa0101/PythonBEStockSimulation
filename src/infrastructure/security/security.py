@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
@@ -57,4 +58,24 @@ async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depend
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token đã hết hạn. Hãy đăng nhập lại.")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token bị làm giả.")
-    
+
+security_optional = HTTPBearer(auto_error=False)
+
+async def get_optional_user_id(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_optional),
+) -> str:
+    """
+    Biến thể "lenient" của get_current_user_id — dùng cho endpoint cho phép
+    cả khách ẩn danh (vd log-view). KHÔNG BAO GIỜ raise HTTPException: thiếu
+    header, token hết hạn, token sai định dạng... đều fallback "anonymous"
+    thay vì chặn request.
+    """
+    if credentials is None:
+        return "anonymous"
+
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("id")
+        return user_id if user_id else "anonymous"
+    except jwt.PyJWTError:
+        return "anonymous"

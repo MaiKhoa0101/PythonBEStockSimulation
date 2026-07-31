@@ -7,12 +7,6 @@ es_client = Elasticsearch(ES_URL)
 
 MOVIE_INDEX = "movies"
 
-# Object dùng chung cho actors/directors/categories/countries — mỗi phần tử
-# giờ là {id, name, slug} đầy đủ thay vì chỉ 1 string tên, khớp với
-# ActorDTO/DirectorDTO/CategoryDTO/CountryDTO mà API list (đọc từ Postgres)
-# đang trả về. "name" vẫn giữ vi_analyzer để full-text search tiếng Việt +
-# subfield "keyword" để filter/sort chính xác theo tên, "id"/"slug" là
-# keyword để filter chính xác theo id/slug.
 _NESTED_ENTITY_PROPERTIES = {
     "type": "nested",
     "properties": {

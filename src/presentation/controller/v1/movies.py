@@ -1,4 +1,6 @@
 # src/presentation/controller/movie_controller.py
+from datetime import datetime, timezone
+import json
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, Query, UploadFile
@@ -44,6 +46,7 @@ _TASK_DEL_MOVIE  = "tasks.delete_movie_from_es"
 _TASK_SYNC_BULK  = "tasks.bulk_sync_all_movies_to_es"
 router = APIRouter()
 require_watchable_role = RoleChecker(["admin", "premium"])
+require_watchable_free_role = RoleChecker(["admin", "premium","user"])
 require_admin          = RoleChecker(["admin"])
 
 @router.get("/")
@@ -244,7 +247,25 @@ async def api_delete_movie(
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Xóa không thành công"}
 
-
+@router.post("/log-view/{movie_id}")
+async def log_movie_view(
+    movie_id: str,
+    episode_id: Optional[str] = None,
+    duration_watched: int = 0,
+    user_id: str = Depends(require_watchable_free_role.check),
+    redis_client = Depends(get_redis_client) 
+):
+    event_data = {
+        "user_id": user_id,
+        "movie_id": movie_id,
+        "episode_id": episode_id,
+        "duration_watched": duration_watched,
+        "timestamp":  datetime.now(timezone.utc)
+    }
+    
+    redis_client.rpush("buffer:movie_views", json.dumps(event_data))
+    
+    return {"status": "success", "message": "View logged to buffer"}
 # ─────────────────────────────────────────────────────────────────────────────
 # Video & Views Endpoints
 # ─────────────────────────────────────────────────────────────────────────────

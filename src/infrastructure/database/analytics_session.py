@@ -45,6 +45,7 @@ def create_analytics_tables():
     # Import model ở đây để đảm bảo nó đã đăng ký vào AnalyticsBase.metadata
     # TRƯỚC khi gọi create_all() — dù main.py có import hay không
     from src.infrastructure.database.models.analytics.movie_daily_statistic import MovieDailyStatistic  # noqa: F401
+    from src.infrastructure.database.models.analytics.movie_view_log import MovieViewLogModel  # noqa: F401
 
     AnalyticsBase.metadata.create_all(bind=analytics_engine)
     print("[Analytics] PostgreSQL tables created ✓")

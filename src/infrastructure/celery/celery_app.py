@@ -25,6 +25,7 @@ celery_instance = Celery(
         "src.infrastructure.celery.aggregate_task",
         "src.infrastructure.celery.simulate_traffic_task",
         "src.infrastructure.celery.sync_movie_task",
+        "src.infrastructure.celery.view_log_task"
     ])
 
 
@@ -64,6 +65,11 @@ celery_instance.conf.update(
             "task":     "tasks.sync_movies_from_external",
             "schedule": 2000.0,
             "options":  {"queue": "heavy_queue"},
+        },
+        "flush-view-logs-buffer-every-30s": {
+            "task": "tasks.flush_view_logs_buffer",
+            "schedule": 30.0,
+            "options": {"queue": "light_queue"},
         },
     }
 )

@@ -33,6 +33,26 @@ Backfill lịch sử (days_back)
   Nếu ngày đang giả lập rơi vào Thứ Bảy/Chủ Nhật, biên độ VIEW_MAX và
   LIKE_MAX được nhân lên (xem WEEKEND_MULTIPLIER) để mô phỏng traffic
   tăng vọt cuối tuần — giúp biểu đồ uốn lượn chân thực hơn.
+
+Raw log có user_id (movie_view_logs) — BỔ SUNG MỚI
+─────────────────────────────────────────────────────────
+  Mỗi sự kiện "view" giả lập (đúng số lượng n_views, đúng timestamp đã
+  sinh cho ES) giờ CŨNG được tạo thêm 1 dòng MovieViewLogModel, ghi vào
+  bảng movie_view_logs (PostgreSQL analytics DB) — cùng bảng mà task
+  thật flush_view_logs_buffer ghi vào từ luồng Write-Behind Redis buffer
+  thật. user_id được gán ngẫu nhiên từ SIMULATED_USER_POOL (hoặc
+  "anonymous" theo ANONYMOUS_VIEW_RATIO) vì đây là dữ liệu giả lập, không
+  có người dùng thật đứng sau mỗi lượt xem.
+
+  episode_id cũng được random THẬT từ bảng episode (join theo movie_id đã
+  bốc, xem episodes_by_movie bên dưới) — không bịa chuỗi ngẫu nhiên, để
+  không phá vỡ tính toàn vẹn dữ liệu. Phim nào chưa có episode trong DB
+  thì episode_id vẫn là None, không lỗi.
+
+  KHÔNG ảnh hưởng gì tới movie_daily_statistics: bảng đó vẫn chỉ do
+  aggregate_task.py tổng hợp từ ES như cũ, không đọc gì từ
+  movie_view_logs cả — nên phần bổ sung này chỉ tạo thêm dữ liệu test
+  cho raw log, không tạo nguy cơ đếm trùng nào mới.
 """
 
 import logging
@@ -42,12 +62,14 @@ from datetime import datetime, timedelta, timezone
 
 import redis
 from sqlalchemy import func
-from elasticsearch.helpers import bulk  # 🔥 Import helper bulk để đẩy mẻ lớn tốc độ cao
+from elasticsearch.helpers import bulk 
 
+from src.infrastructure.database.models.movies.movie_model import EpisodeModel, MovieModel
 from src.infrastructure.celery.celery_app import celery_instance
-from src.infrastructure.database.models.movies.movie_model import MovieModel
 from src.infrastructure.database.session import SessionLocal
 from src.infrastructure.elasticsearch.es_client import es_client  # 🔥 Sử dụng es_client chung
+from src.infrastructure.database.analytics_session import AnalyticsSessionLocal
+from src.infrastructure.database.models.analytics.movie_view_log import MovieViewLogModel
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +92,20 @@ LIKE_MAX  = 50
 # Hệ số nhân biên độ MAX cho ngày CUỐI TUẦN (Thứ 7, Chủ Nhật).
 # VIEW_MAX 500 → 1000, LIKE_MAX 50 → 100 khi multiplier = 2.0.
 WEEKEND_MULTIPLIER = 2.0
+
+# ── Giả lập user_id cho movie_view_logs (raw log có định danh người xem) ────
+SIMULATED_USER_POOL  = [f"anonymous_{i:03d}" for i in range(1, 31)]  # 30 user giả lập
+ANONYMOUS_VIEW_RATIO = 0.2  # 20% lượt xem giả lập là khách vãng lai (chưa đăng nhập)
+
+DURATION_WATCHED_MIN = 30    # giây
+DURATION_WATCHED_MAX = 7200  # giây (~2 tiếng, đủ cho phim dài)
+
+
+def _pick_simulated_user_id() -> str:
+    """Trả về user_id giả lập, hoặc 'anonymous' theo tỉ lệ ANONYMOUS_VIEW_RATIO."""
+    if random.random() < ANONYMOUS_VIEW_RATIO:
+        return "anonymous"
+    return random.choice(SIMULATED_USER_POOL)
 
 
 @celery_instance.task(
@@ -101,6 +137,10 @@ def task_simulate_user_traffic(self, days_back: int = 1):
       4. Bulk đúc dữ liệu tương tác thô (view/like) của ngày đó ném vào
          Elasticsearch, với timestamp ngẫu nhiên (h, m, s) trong đúng
          ngày đang giả lập.
+      5. Bulk insert raw log (có user_id + episode_id giả lập) vào
+         PostgreSQL bảng movie_view_logs — 1 dòng cho mỗi sự kiện "view"
+         đã sinh ở bước 4, cùng timestamp, phục vụ test tính năng ghi
+         nhận lượt xem thật.
     """
     if days_back < 1:
         days_back = 1
@@ -114,6 +154,20 @@ def task_simulate_user_traffic(self, days_back: int = 1):
             .limit(POOL_SIZE)
             .all()
         )
+
+        # Lấy toàn bộ episode của các phim vừa bốc, gom theo movie_id, để
+        # random episode_id chân thực khi sinh raw log (thay vì luôn None).
+        movie_ids = [mv.id for mv in movies]
+        episode_rows = (
+            db.query(EpisodeModel.id, EpisodeModel.id_movie)
+            .filter(EpisodeModel.id_movie.in_(movie_ids))
+            .all()
+        ) if movie_ids else []
+
+        episodes_by_movie: dict[str, list[str]] = {}
+        for ep_id, ep_movie_id in episode_rows:
+            episodes_by_movie.setdefault(ep_movie_id, []).append(ep_id)
+
     except Exception as exc:
         logger.exception("[SimTraffic] Lỗi query MySQL: %s", exc)
         raise self.retry(exc=exc)
@@ -128,8 +182,10 @@ def task_simulate_user_traffic(self, days_back: int = 1):
 
     total_views  = 0
     total_likes  = 0
+    total_logged = 0
     daily_breakdown = []
 
+    db_analytics = AnalyticsSessionLocal()
     try:
         # 💡 Lặp cuốn chiếu từ "days_back ngày trước" cho tới "hôm qua".
         # days_back=1 → chỉ 1 vòng lặp với offset=1 (hôm qua), y hệt logic cũ.
@@ -148,10 +204,11 @@ def task_simulate_user_traffic(self, days_back: int = 1):
             k      = random.randint(PICK_MIN, PICK_MAX)
             picked = random.sample(movies, min(k, len(movies)))
 
-            # ── Bước 2 (cho ngày này): Hạ tầng nạp dữ liệu Redis + ES ───────
+            # ── Bước 2 (cho ngày này): Hạ tầng nạp dữ liệu Redis + ES + PG ──
             day_views  = 0
             day_likes  = 0
             es_actions = []  # Mảng chứa danh sách tài liệu log thô của riêng ngày này
+            view_log_rows = []  # Raw log có user_id, ghi vào movie_view_logs (PostgreSQL)
 
             pipe = _redis.pipeline(transaction=False)
 
@@ -166,8 +223,12 @@ def task_simulate_user_traffic(self, days_back: int = 1):
                 day_views += n_views
                 day_likes += n_likes
 
+                movie_episodes = episodes_by_movie.get(movie.id)
+
                 # 🛠️ Hành động 2: Chuẩn bị mẻ log thô ném sang Elasticsearch
-                # Tạo các bản ghi sự kiện View
+                # Tạo các bản ghi sự kiện View — ĐỒNG THỜI sinh raw log có
+                # user_id + episode_id cho movie_view_logs, dùng chung
+                # timestamp ts để 2 nguồn dữ liệu khớp nhau khi đối chiếu.
                 for _ in range(n_views):
                     # Sinh giờ, phút, giây ngẫu nhiên trong ĐÚNG ngày đang giả lập
                     h = random.randint(0, 23)
@@ -186,6 +247,14 @@ def task_simulate_user_traffic(self, days_back: int = 1):
                             "timestamp": ts.strftime("%Y-%m-%dT%H:%M:%S"),  # Định dạng khớp strict_date_hour_minute_second
                         }
                     })
+
+                    view_log_rows.append(MovieViewLogModel(
+                        user_id=_pick_simulated_user_id(),
+                        movie_id=str(movie.id),
+                        episode_id=random.choice(movie_episodes) if movie_episodes else None,
+                        duration_watched=random.randint(DURATION_WATCHED_MIN, DURATION_WATCHED_MAX),
+                        created_at=ts,
+                    ))
 
                 # Tạo các bản ghi sự kiện Like
                 for _ in range(n_likes):
@@ -224,6 +293,16 @@ def task_simulate_user_traffic(self, days_back: int = 1):
                         target_date.date().isoformat(), len(failed),
                     )
 
+            # 🚀 Bulk insert raw log (có user_id + episode_id) của ngày này vào PostgreSQL
+            if view_log_rows:
+                db_analytics.bulk_save_objects(view_log_rows)
+                db_analytics.commit()
+                logger.info(
+                    "[SimTraffic] Ngày %s: đã bulk insert %d dòng movie_view_logs (raw log, có user_id) ✓",
+                    target_date.date().isoformat(), len(view_log_rows),
+                )
+                total_logged += len(view_log_rows)
+
             total_views += day_views
             total_likes += day_likes
             daily_breakdown.append({
@@ -232,18 +311,23 @@ def task_simulate_user_traffic(self, days_back: int = 1):
                 "picked":      len(picked),
                 "views_added": day_views,
                 "likes_added": day_likes,
+                "view_logs_inserted": len(view_log_rows),
                 "movies":      [mv.name for mv in picked],
             })
 
     except Exception as exc:
+        db_analytics.rollback()
         logger.exception("[SimTraffic] Hệ thống đường ống (Pipeline) gặp lỗi: %s", exc)
         raise self.retry(exc=exc)
+    finally:
+        db_analytics.close()
 
     result = {
         "days_back":       days_back,
         "days_processed":  len(daily_breakdown),
         "views_added":     total_views,
         "likes_added":     total_likes,
+        "view_logs_inserted": total_logged,
         "daily_breakdown": daily_breakdown,
     }
     logger.info("[SimTraffic] Hoàn tất chu kỳ giả lập (%d ngày): %s", len(daily_breakdown), result)
