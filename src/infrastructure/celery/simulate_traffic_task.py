@@ -94,7 +94,7 @@ LIKE_MAX  = 50
 WEEKEND_MULTIPLIER = 2.0
 
 # ── Giả lập user_id cho movie_view_logs (raw log có định danh người xem) ────
-SIMULATED_USER_POOL  = [f"anonymous_{i:03d}" for i in range(1, 31)]  # 30 user giả lập
+SIMULATED_USER_POOL  = [f"anonymous_{i:03d}" for i in range(1, 1000)]  # 30 user giả lập
 ANONYMOUS_VIEW_RATIO = 0.2  # 20% lượt xem giả lập là khách vãng lai (chưa đăng nhập)
 
 DURATION_WATCHED_MIN = 30    # giây
