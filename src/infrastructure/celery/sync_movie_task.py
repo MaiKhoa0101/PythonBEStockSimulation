@@ -176,7 +176,7 @@ async def _run_sync() -> None:
         db.close()
 
 
-@celery_instance.task(name="tasks.sync_movies_from_external", queue="light_queue")
+@celery_instance.task(name="tasks.sync_movies_from_external", queue="heavy_queue")
 def sync_movies_from_external():
     """Celery task LÀ hàm sync (không async) — bọc asyncio.run() để gọi được
     xuống các lớp service/repository/gateway vốn viết async def (theo đúng

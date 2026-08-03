@@ -61,11 +61,11 @@ celery_instance.conf.update(
             "kwargs":   {"days_back": 1},  
             "options":  {"queue": "light_queue"},
         },
-        "sync-movies-from-external-every-5min": {
-            "task":     "tasks.sync_movies_from_external",
-            "schedule": 2000.0,
-            "options":  {"queue": "heavy_queue"},
-        },
+        # "sync-movies-from-external-every-5min": {
+        #     "task":     "tasks.sync_movies_from_external",
+        #     "schedule": 2000.0,
+        #     "options":  {"queue": "heavy_queue"},
+        # },
         "flush-view-logs-buffer-every-30s": {
             "task": "tasks.flush_view_logs_buffer",
             "schedule": 30.0,
@@ -76,51 +76,23 @@ celery_instance.conf.update(
 import src.infrastructure.celery.signal
 
 
-# # ── Kích hoạt backfill 1 lần khi Celery Beat khởi động ───────────────────────
-# @beat_init.connect
-# def _trigger_one_time_backfill(**kwargs):
-#     """
-#     Chạy đúng 1 lần khi tiến trình Celery Beat khởi động, CHỈ KHI
-#     BACKFILL_DAYS_BACK > 1. Dùng chain() để đảm bảo simulate_traffic
-#     (bơm dữ liệu giả vào ES) chạy xong hẳn rồi mới tới aggregate
-#     (tổng hợp ES → Postgres) — không cần gọi tay qua terminal.
 
-#     File lock /tmp/.backfill_lock_<N> đảm bảo nếu Beat bị restart nhiều
-#     lần (crash loop, deploy lại...) trong lúc quên xoá biến môi trường,
-#     backfill cũng không bị bơm lặp lại dữ liệu.
-#     """
-#     if BACKFILL_DAYS_BACK <= 1:
-#         return
+_BACKFILL_LOCK_FILE = "/tmp/.sync_movies_backfill_done"
+@beat_init.connect
+def _trigger_one_time_backfill(**kwargs):
+    if os.path.exists(_BACKFILL_LOCK_FILE):
+        logger.info(
+            "[Backfill] Đã chạy sync_movies_from_external trước đó rồi "
+            "(thấy lock file %s) — bỏ qua.", _BACKFILL_LOCK_FILE,
+        )
+        return
 
-#     if os.path.exists(_BACKFILL_LOCK_FILE):
-#         logger.info(
-#             "[Backfill] Đã backfill %d ngày trước đó rồi (thấy lock file %s) — bỏ qua.",
-#             BACKFILL_DAYS_BACK, _BACKFILL_LOCK_FILE,
-#         )
-#         return
+    from src.infrastructure.celery.sync_movie_task import sync_movies_from_external
 
-#     # Import trễ (lazy import) để tránh circular import, vì 2 task module
-#     # này tự import ngược lại `celery_instance` từ chính file này.
-#     from src.infrastructure.celery.simulate_traffic_task import task_simulate_user_traffic
-#     from src.infrastructure.celery.aggregate_task import task_aggregate_es_to_postgres
+    sync_movies_from_external.si().apply_async()
 
-#     logger.warning(
-#         "[Backfill] BACKFILL_DAYS_BACK=%d — kích hoạt chuỗi backfill: "
-#         "simulate_traffic → aggregate_es_to_postgres. "
-#         "Nhớ đặt lại BACKFILL_DAYS_BACK=1 sau khi hoàn tất!",
-#         BACKFILL_DAYS_BACK,
-#     )
-
-#     # .si() = "immutable signature" — KHÔNG truyền kết quả trả về của task
-#     # trước làm tham số cho task sau (2 task nhận days_back cố định, không
-#     # liên quan gì tới nhau về mặt dữ liệu trả về).
-#     chain(
-#         task_simulate_user_traffic.si(days_back=BACKFILL_DAYS_BACK),
-#         task_aggregate_es_to_postgres.si(days_back=BACKFILL_DAYS_BACK),
-#     ).apply_async()
-
-#     try:
-#         with open(_BACKFILL_LOCK_FILE, "w") as f:
-#             f.write("done")
-#     except OSError:
-#         logger.exception("[Backfill] Không ghi được lock file %s", _BACKFILL_LOCK_FILE)
+    try:
+        with open(_BACKFILL_LOCK_FILE, "w") as f:
+            f.write("done")
+    except OSError:
+        logger.exception("[Backfill] Không ghi được lock file %s", _BACKFILL_LOCK_FILE)
