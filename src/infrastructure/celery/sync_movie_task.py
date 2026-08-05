@@ -157,6 +157,7 @@ async def _run_sync() -> None:
         for page in range(SYNC_PAGE_FROM, SYNC_PAGE_TO + 1):
             try:
                 list_data = await gateway.fetch_movies_list_paginated(SYNC_LIST_TYPE, page)
+                
             except httpx.HTTPError as e:
                 print(f"[SyncMovie] Lỗi khi lấy trang {page}: {e}")
                 continue
@@ -176,10 +177,87 @@ async def _run_sync() -> None:
         db.close()
 
 
+YEAR_START = 2020
+YEAR_END = 2026
+async def _run_sync_by_year() -> None:
+    db = SessionLocal()
+    try:
+        movie_repo = MoviesRepositories(db)
+        create_movie_service = CreateMovie(movie_repo)
+        gateway = MovieApiGateway()
+
+        for year in range(YEAR_START, YEAR_END + 1):
+
+            try:
+                first_page = await gateway.fetch_movies_list_paginated_by_year(
+                    page=1,
+                    year=year
+                )
+            except httpx.HTTPError as e:
+                print(f"[SyncMovie] Không lấy được dữ liệu năm {year}: {e}")
+                continue
+
+            pagination = (
+                first_page.get("data", {})
+                          .get("params", {})
+                          .get("pagination", {})
+            )
+
+            total_pages = pagination.get("totalPages", 1)
+
+            print(f"Năm {year}: {total_pages} trang")
+
+            # xử lý luôn trang đầu
+            items = first_page.get("data", {}).get("items", [])
+            for item in items:
+                await _sync_one_movie(
+                    gateway,
+                    movie_repo,
+                    create_movie_service,
+                    item,
+                )
+
+                if SYNC_REQUEST_DELAY_SECONDS:
+                    await asyncio.sleep(SYNC_REQUEST_DELAY_SECONDS)
+
+            # các trang còn lại
+            for page in range(2, total_pages + 1):
+
+                try:
+                    page_data = await gateway.fetch_movies_list_paginated_by_year(
+                        page=page,
+                        year=year
+                    )
+                except httpx.HTTPError as e:
+                    print(f"[SyncMovie] Lỗi năm {year} trang {page}: {e}")
+                    continue
+
+                items = page_data.get("data", {}).get("items", [])
+
+                print(f"Năm {year} - Trang {page}: {len(items)} phim")
+
+                for item in items:
+                    await _sync_one_movie(
+                        gateway,
+                        movie_repo,
+                        create_movie_service,
+                        item,
+                    )
+
+                    if SYNC_REQUEST_DELAY_SECONDS:
+                        await asyncio.sleep(SYNC_REQUEST_DELAY_SECONDS)
+
+    except Exception as e:
+        db.rollback()
+        print(f"[SyncMovie] Lỗi không mong muốn: {e}")
+
+    finally:
+        db.close()
+
 @celery_instance.task(name="tasks.sync_movies_from_external", queue="heavy_queue")
 def sync_movies_from_external():
     """Celery task LÀ hàm sync (không async) — bọc asyncio.run() để gọi được
     xuống các lớp service/repository/gateway vốn viết async def (theo đúng
     cách celery_app.py đã include các task khác, xem sync_movie_to_es làm mẫu:
     `db = SessionLocal(); ... finally: db.close()`)."""
-    asyncio.run(_run_sync())
+    asyncio.run(_run_sync_by_year())

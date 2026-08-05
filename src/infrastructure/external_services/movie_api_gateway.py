@@ -10,13 +10,18 @@ from src.application.interfaces.external_services.movie_api_gateway_interface im
 class MovieApiGateway(IMovieApiGateway):
     # Dùng riêng cho task sync — không đổi fetch_movies_list() cũ để tránh phá
     # chỗ khác đang gọi nó với hành vi "phim-moi-cap-nhat" mặc định.
-    async def fetch_movies_list_paginated(self, list_type: str = "phim-le", page: int = 1):
+    async def fetch_movies_list_paginated(self, list_type: str = "phim-le", page: int = 1, year:int = 2026):
         url = f"https://phimapi.com/danh-sach/{list_type}"
         async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.get(url, params={"page": page})
             response.raise_for_status()
         return response.json()
-
+    async def fetch_movies_list_paginated_by_year(self, list_type: str = "", page: int = 1, year:int = 2026):
+        url = f"https://phimapi.com/v1/api/nam/{year}?page={page}"
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(url, params={"page": page})
+            response.raise_for_status()
+        return response.json()
     async def fetch_movies_list(self):
         print(" Vào được repo này")
         url = "https://phimapi.com/danh-sach/phim-moi-cap-nhat"

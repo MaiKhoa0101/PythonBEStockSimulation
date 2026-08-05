@@ -46,7 +46,7 @@ celery_instance.conf.update(
         },
         "reconcile-db-to-es-every-night": {
             "task": "tasks.reconcile_movie_data",
-            "schedule": 300, # crontab(hour=16, minute=7),
+            "schedule": crontab(hour=16, minute=7),
             "options": {"queue": "light_queue"} 
         },
         "aggregate-es-to-postgres-daily": {
@@ -68,7 +68,7 @@ celery_instance.conf.update(
         # },
         "flush-view-logs-buffer-every-30s": {
             "task": "tasks.flush_view_logs_buffer",
-            "schedule": 30.0,
+            "schedule": 2000.0,
             "options": {"queue": "light_queue"},
         },
     }
@@ -85,7 +85,6 @@ def _trigger_one_time_backfill(**kwargs):
             "[Backfill] Đã chạy sync_movies_from_external trước đó rồi "
             "(thấy lock file %s) — bỏ qua.", _BACKFILL_LOCK_FILE,
         )
-        return
 
     from src.infrastructure.celery.sync_movie_task import sync_movies_from_external
 
