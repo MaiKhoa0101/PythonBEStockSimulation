@@ -177,8 +177,8 @@ async def _run_sync() -> None:
         db.close()
 
 
-YEAR_START = 2020
-YEAR_END = 2026
+YEAR_START = 2010
+YEAR_END = 2012
 async def _run_sync_by_year() -> None:
     db = SessionLocal()
     try:

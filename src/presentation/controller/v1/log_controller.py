@@ -52,6 +52,10 @@ async def api_get_log_status_summary(
     return {"status": "Success", "data": result}
 
 
+@router.get("/test-error")
+async def test_error():
+    raise ValueError("Test error để kiểm tra Kibana")
+
 @router.get("/{task_id}")
 async def api_get_log_detail(
     task_id: str,
@@ -62,7 +66,6 @@ async def api_get_log_detail(
     if result:
         return {"status": "Success", "data": result}
     raise HTTPException(status_code=404, detail="Không tìm thấy task log")
-
 
 VIEW_BUFFER_KEY = "buffer:movie_views"
 

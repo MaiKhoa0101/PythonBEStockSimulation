@@ -1,11 +1,14 @@
 from contextlib import asynccontextmanager
+import logging
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from redis.asyncio import Redis as AsyncRedis
 
+from src.infrastructure.elasticsearch.logging_system import setup_logging
 from src.presentation.controller.v1 import category_controller
 from src.presentation.controller.v1 import analytics_controller
 from src.presentation.controller.v1 import admin_log_controller
@@ -44,6 +47,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+
+logger = logging.getLogger(__name__)
+setup_logging()
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        f"Unhandled error at {request.method} {request.url.path}: {exc}",
+        exc_info=True,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal server error"},
+    )
+
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
 

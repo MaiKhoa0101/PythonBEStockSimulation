@@ -398,17 +398,21 @@ class MoviesRepositories(IMoviesRepository):
     async def delete_movie_by_id(self, id):
         db_movie = self.db.query(MovieModel).filter(
             MovieModel.id == id,
-            MovieModel.is_deleted == False 
+            MovieModel.is_deleted == False
         ).first()
 
-        if not db_movie:   
+        if not db_movie:
             return None
-        
-        db_movie.is_deleted=True
 
+        db_movie.is_deleted = True
         self.db.commit()
+        self.db.refresh(db_movie)  
 
-        return True
+        result = model_to_entity(
+            db_movie,
+            Movie
+        )
+        return result
     
     async def upload_episode(
         self,

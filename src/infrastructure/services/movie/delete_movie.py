@@ -13,6 +13,6 @@ class DeleteMovie(IDeleteMovie):
     async def delete_movie_by_id(self,id):
         result = await self.movie_repository.delete_movie_by_id(id)
 
-        if not result: #ko thanh cong
+        if not result:
             return None
-        return "Xóa thành công"
+        return result

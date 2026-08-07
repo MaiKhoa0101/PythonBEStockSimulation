@@ -56,7 +56,7 @@ class MovieModel(Base):
     id = Column(String(50), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(200))
     slug_name = Column(String(200), unique=True, index=True)
-    origin_name = Column(String(200))
+    origin_name = Column(String(250))
     is_series = Column(Boolean, default=False)
 
     status = Column(String(50))     # "completed" | "ongoing"

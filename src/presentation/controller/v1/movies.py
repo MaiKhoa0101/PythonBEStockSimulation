@@ -234,14 +234,14 @@ async def api_delete_movie(
 ):
     result = await deleteMovieService.delete_movie_by_id(id)
 
-    write_audit_log(                     
-        action="DELETE",
-        admin_id=current_user_id,
-        movie_id=result.id,
-        movie_title=result.name,
-        new_values={}
-    )
     if result:
+        write_audit_log(                     
+            action="DELETE",
+            admin_id=current_user_id,
+            movie_id=result.id,
+            movie_title=result.name,
+            new_values={}
+        )
         background_tasks.add_task(cache_delete, redis, movie_detail_key(result.slug_name))
         celery_instance.send_task(_TASK_DEL_MOVIE, args=[id], queue="light_queue")
         return {"status": "Success", "data": result}

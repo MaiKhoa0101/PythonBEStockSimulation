@@ -38,7 +38,7 @@ celery_instance.conf.update(
     beat_schedule={
         "sync-view-count": {
             "task": "tasks.sync_view_count",
-            "schedule": 400.0, 
+            "schedule": 2000.0, 
         },
         "expire-premium-users": {
             "task": "tasks.expire_premium_users",
@@ -51,13 +51,13 @@ celery_instance.conf.update(
         },
         "aggregate-es-to-postgres-daily": {
             "task":     "tasks.aggregate_es_to_postgres",
-            "schedule": 300, 
+            "schedule": 3600, 
             "kwargs":   {"days_back": 1}, 
             "options":  {"queue": "light_queue"},
         },
         "simulate-user-traffic-every-5min": {
             "task":     "tasks.simulate_user_traffic",
-            "schedule": 900.0,  
+            "schedule": 3900.0,  
             "kwargs":   {"days_back": 1},  
             "options":  {"queue": "light_queue"},
         },
