@@ -1,13 +1,15 @@
 # src/presentation/controller/movie_controller.py
 from datetime import datetime, timezone
 import json
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Path, Query, UploadFile
 from fastapi.encoders import jsonable_encoder
 
 
-from src.infrastructure.cache.movie_cache import cache_delete, cache_get_json, cache_set_json, movie_detail_key, movie_list_home_key
+from src.application.interfaces.services.similar_movies_interface import ISimilarMoviesService
+from src.infrastructure.cache.movie_cache import cache_delete, cache_get_json, cache_set_json, invalidate_movie_list_home_cache, movie_detail_key, movie_list_home_key
 from src.infrastructure.services.logs.admin_log_service import write_audit_log
 from src.application.interfaces.services.movies_service_interface import (
     ICreateMovie,
@@ -36,6 +38,7 @@ from src.presentation.controller.dependencies import (
     IGetMoviesDetailByNameDependency,
     IGetVideoUrlServiceDependency,
     IPatchMovieDependency,
+    ISimilarMoviesDependency,
     IUpdateEntireMovieDependency,
     IUploadEpisodeServiceDepedency,
 )
@@ -48,6 +51,7 @@ router = APIRouter()
 require_watchable_role = RoleChecker(["admin", "premium"])
 require_watchable_free_role = RoleChecker(["admin", "premium","user"])
 require_admin          = RoleChecker(["admin"])
+logger = logging.getLogger(__name__)
 
 @router.get("/")
 async def api_get_movie_list(
@@ -78,14 +82,28 @@ async def api_get_movie_list(
     return {"status": "Failed", "data": "Lấy danh sách không thành công"}
 
 @router.get("/listhome")
-async def api_get_movie_list_home(page: int = 1, size: int = 20, redis=Depends(get_redis_client)):
-    cache_key = f"{movie_list_home_key()}:page:{page}"  
+async def api_get_movie_list_home(
+    page: int = 1,
+    size: int = 20,
+    getMovieListHomeService: IGetListMoviesService = Depends(IGetListMoviesServiceDependency),
+    redis=Depends(get_redis_client)
+):
+    cache_key = f"{movie_list_home_key()}:page:{page}"
 
     cached = await cache_get_json(redis, cache_key)
     if cached is not None:
         return {"status": "Success", "data": cached}
 
-    result = fetch_movies_list_home_from_es(page=page, size=size) 
+    try:
+        result = fetch_movies_list_home_from_es(page, size)
+    except Exception as e:
+        logger.error(f"ES lỗi khi lấy listhome, fallback về DB: {e}")
+        result = None
+
+    if not result:
+        db_result = await getMovieListHomeService.fetch_movies_list(page=page, size=size)
+        result = db_result["results"]  
+
     if result:
         serializable_data = jsonable_encoder(result)
         await cache_set_json(redis, cache_key, serializable_data, expire=120)
@@ -94,17 +112,29 @@ async def api_get_movie_list_home(page: int = 1, size: int = 20, redis=Depends(g
     return {"status": "Failed", "data": "Lấy danh sách không thành công"}
 
 @router.get("/search")
-def api_search_movies(q: str):
+async def api_search_movies(
+    q: str,
+    getListMovieService: IGetListMoviesService = Depends(IGetListMoviesServiceDependency),
+):
     if not q or not q.strip():
         return {"status": "Failed", "data": "Vui lòng nhập từ khóa tìm kiếm"}
-    result = search_movies(q.strip())
-    return {"status": "Success", "data": result}
 
+    try:
+        result = await search_movies(q.strip())
+    except Exception as e:
+        logger.error(f"ES lỗi khi search '{q}': {e}")
+        result = None
+
+    if not result:
+        db_result = await getListMovieService.fetch_movies_list(page=1, size=20, q=q.strip())
+        result = {"results": db_result["results"]}
+
+    return {"status": "Success", "data": result}
 
 @router.get("/name/{name}")
 async def api_get_movie_detail_by_name(
-    name: str, 
-    # getMoviesDetailByNameService: IGetMoviesDetailByName = Depends(IGetMoviesDetailByNameDependency),
+    name: str,
+    getMoviesDetailByNameService: IGetMoviesDetailByName = Depends(IGetMoviesDetailByNameDependency),
     redis=Depends(get_redis_client)
 ):
     cache_key = movie_detail_key(name)
@@ -112,18 +142,23 @@ async def api_get_movie_detail_by_name(
     cached = await cache_get_json(redis, cache_key)
     if cached is not None:
         return {"status": "Success", "data": cached}
-    
-    result = get_movie_by_slug_from_es(name)
 
-    # result =  getMoviesDetailByNameService.fetch_movie_detail_by_name(name)
+    try:
+        result = await get_movie_by_slug_from_es(name)
+    except Exception as e:
+        logger.error(f"ES lỗi khi lấy movie detail theo slug '{name}': {e}")
+        result = None
+
+    if not result:
+
+        result = await getMoviesDetailByNameService.fetch_movie_detail_by_name(name)
+
     if result:
-        print ("[Get detail by name] Lấy data từ es")
         serializable_data = jsonable_encoder(result)
         await cache_set_json(redis, cache_key, serializable_data, expire=60)
         return {"status": "Success", "data": serializable_data}
 
     return {"status": "Failed", "data": "Tìm không thành công"}
-
 
 @router.get("/id/{id}")
 async def api_get_movie_detail_by_id(
@@ -135,13 +170,19 @@ async def api_get_movie_detail_by_id(
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Tìm không thành công"}
 
-
 @router.get("/sync_movie")
 async def api_sync_movie():
     celery_instance.send_task(_TASK_SYNC_BULK, queue="light_queue")
     return {"status": "Success", "data": "Đã kích hoạt sync toàn bộ phim"}
 
-
+@router.get("/similar/{movie_id}")
+async def api_get_similar_movies(
+    movie_id: str = Path(...),
+    limit: int = 5,
+    similarMoviesService: ISimilarMoviesService = Depends(ISimilarMoviesDependency),
+):
+    result = await similarMoviesService.get_similar_movies(movie_id, limit)
+    return {"status": "Success", "data": result}
 # ─────────────────────────────────────────────────────────────────────────────
 # WRITE Endpoints
 # ─────────────────────────────────────────────────────────────────────────────
@@ -151,11 +192,13 @@ async def api_create_movie(
     movie_data: MovieCreateDTO,
     current_user_id: str = Depends(require_admin.check),
     createMovieService: ICreateMovie = Depends(ICreateMovieDependency),
+    redis=Depends(get_redis_client),
 ):
     result = await createMovieService.create_movie(movie_data)
     if result:
         celery_instance.send_task(_TASK_SYNC_MOVIE, args=[result.id], queue="light_queue")
-        write_audit_log(                     
+        await invalidate_movie_list_home_cache(redis)
+        write_audit_log(
             action="CREATE",
             admin_id=current_user_id,
             movie_id=result.id,
@@ -178,22 +221,18 @@ async def api_update_movie(
     result = await updateEntireMovieService.update_entire_movie(id, updateMovieDTO)
     if result:
         background_tasks.add_task(cache_delete, redis, movie_detail_key(result.slug_name))
+        background_tasks.add_task(invalidate_movie_list_home_cache, redis)  
 
-        write_audit_log(                     
+        write_audit_log(
             action="UPDATE",
             admin_id=current_user_id,
             movie_id=result.id,
             movie_title=result.name,
             new_values=updateMovieDTO.model_dump()
         )
-        celery_instance.send_task(
-            _TASK_SYNC_MOVIE,
-            args=[result.id],
-            queue="light_queue"
-        )
+        celery_instance.send_task(_TASK_SYNC_MOVIE, args=[result.id], queue="light_queue")
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Update không thành công"}
-
 
 @router.patch("/patch-movie/{id}")
 async def api_patch_movie(
@@ -207,22 +246,18 @@ async def api_patch_movie(
     result = await patchMovieService.patch_movie(id, update_batch_movie)
     if result:
         background_tasks.add_task(cache_delete, redis, movie_detail_key(result.slug_name))
+        background_tasks.add_task(invalidate_movie_list_home_cache, redis)
 
-        write_audit_log(                     
+        write_audit_log(
             action="PATCH",
             admin_id=current_user_id,
             movie_id=result.id,
             movie_title=result.name,
             new_values=update_batch_movie.model_dump()
         )
-        celery_instance.send_task(
-            _TASK_SYNC_MOVIE,
-            args=[result.id],
-            queue="light_queue"
-        )
+        celery_instance.send_task(_TASK_SYNC_MOVIE, args=[result.id], queue="light_queue")
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Update không thành công"}
-
 
 @router.delete("/delete-by-id/{id}")
 async def api_delete_movie(
@@ -235,7 +270,7 @@ async def api_delete_movie(
     result = await deleteMovieService.delete_movie_by_id(id)
 
     if result:
-        write_audit_log(                     
+        write_audit_log(
             action="DELETE",
             admin_id=current_user_id,
             movie_id=result.id,
@@ -243,9 +278,12 @@ async def api_delete_movie(
             new_values={}
         )
         background_tasks.add_task(cache_delete, redis, movie_detail_key(result.slug_name))
+        background_tasks.add_task(cache_delete, redis, f"movie:{id}:similar") 
+        background_tasks.add_task(invalidate_movie_list_home_cache, redis)   
         celery_instance.send_task(_TASK_DEL_MOVIE, args=[id], queue="light_queue")
         return {"status": "Success", "data": result}
     return {"status": "Failed", "data": "Xóa không thành công"}
+
 
 @router.post("/log-view/{movie_id}")
 async def log_movie_view(

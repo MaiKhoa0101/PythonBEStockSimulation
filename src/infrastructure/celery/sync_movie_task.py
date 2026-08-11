@@ -177,8 +177,8 @@ async def _run_sync() -> None:
         db.close()
 
 
-YEAR_START = 2010
-YEAR_END = 2012
+YEAR_START = 2026
+YEAR_END = 2026
 async def _run_sync_by_year() -> None:
     db = SessionLocal()
     try:
@@ -256,8 +256,4 @@ async def _run_sync_by_year() -> None:
 
 @celery_instance.task(name="tasks.sync_movies_from_external", queue="heavy_queue")
 def sync_movies_from_external():
-    """Celery task LÀ hàm sync (không async) — bọc asyncio.run() để gọi được
-    xuống các lớp service/repository/gateway vốn viết async def (theo đúng
-    cách celery_app.py đã include các task khác, xem sync_movie_to_es làm mẫu:
-    `db = SessionLocal(); ... finally: db.close()`)."""
     asyncio.run(_run_sync_by_year())

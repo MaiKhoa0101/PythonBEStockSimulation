@@ -69,3 +69,15 @@ async def cache_delete(redis: Redis, *keys: str) -> None:
         await redis.delete(*keys)
     except Exception:
         logger.warning("cache DELETE failed keys=%s", keys, exc_info=True)
+
+async def invalidate_movie_list_home_cache(redis):
+    """Xoá toàn bộ cache các trang của /listhome (mọi page), 
+    dùng khi có phim mới/sửa/xoá để tránh cache cũ tồn tại tới 120s."""
+    pattern = f"{movie_list_home_key()}:page:*"
+    cursor = 0
+    while True:
+        cursor, keys = await redis.scan(cursor=cursor, match=pattern, count=100)
+        if keys:
+            await redis.delete(*keys)
+        if cursor == 0:
+            break

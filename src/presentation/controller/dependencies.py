@@ -2,6 +2,9 @@
 
 from fastapi import Depends
 
+from src.application.interfaces.services.similar_movies_interface import ISimilarMoviesService
+from src.infrastructure.database.redis import get_redis_client
+from src.infrastructure.services.movie.similar_movies import SimilarMoviesService
 from src.application.interfaces.repositories.category_repository_interface import ICategoryRepository
 from src.application.interfaces.services.category_service_interface import IGetListCategoriesService
 from src.infrastructure.database.repositories.category_repository import CategoryRepository
@@ -96,6 +99,10 @@ def ICategoriesRepositoryDependency(
 ) -> ICategoryRepository:
     return CategoryRepository(db=db)
 
+def ISimilarMoviesDependency(
+    redis=Depends(get_redis_client),
+) -> ISimilarMoviesService:
+    return SimilarMoviesService(redis=redis)
 #=================================================ok
 # Bơm phụ thuộc
 def IGetListMoviesServiceDependency(

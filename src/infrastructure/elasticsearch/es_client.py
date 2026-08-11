@@ -1,5 +1,6 @@
 import os
 from elasticsearch import Elasticsearch
+from elasticsearch.exceptions import NotFoundError, ConnectionError as ESConnectionError, TransportError
 
 ES_URL = os.getenv("ELASTICSEARCH_URL", "http://elasticsearch:9200")
 
@@ -96,3 +97,35 @@ def recreate_movie_index():
         print(f"[Elasticsearch] Đã xóa index cũ '{MOVIE_INDEX}'")
     es_client.indices.create(index=MOVIE_INDEX, body=MOVIE_INDEX_MAPPING)
     print(f"[Elasticsearch] Đã tạo lại index '{MOVIE_INDEX}' với mapping mới")
+
+
+def get_similar_movies_from_es(movie_id: str, limit: int = 10) -> list[dict]:
+    """
+    Raise NotFoundError nếu movie_id không tồn tại trong index.
+    Raise ESConnectionError/TransportError nếu ES mất kết nối.
+    Caller (service layer) chịu trách nhiệm bắt các exception này.
+    """
+    query = {
+        "size": limit,
+        "_source": ["id", "name", "slug_name", "poster_url", "is_series", "year"],
+        "query": {
+            "bool": {
+                "must": {
+                    "more_like_this": {
+                        "fields": ["name","origin_name", "description", "categories.name"],
+                        "like": [{"_index": MOVIE_INDEX, "_id": movie_id}],
+                        "min_term_freq": 1,
+                        "max_query_terms": 12,
+                        "minimum_should_match": "30%",
+                    }
+                },
+                "filter": [
+                    {"term": {"is_deleted": False}}
+                ],
+            }
+        },
+    }
+
+    response = es_client.search(index=MOVIE_INDEX, body=query)
+    hits = response.get("hits", {}).get("hits", [])
+    return [hit["_source"] for hit in hits]

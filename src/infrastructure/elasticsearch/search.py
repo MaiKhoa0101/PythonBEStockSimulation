@@ -36,7 +36,6 @@ def search_movies(query: str, size: int = 20) -> dict:
                     {
                         "bool": {
                             "should": [
-                                # Các field text phẳng — multi_match bình thường vẫn dùng được
                                 {
                                     "multi_match": {
                                         "query": query,

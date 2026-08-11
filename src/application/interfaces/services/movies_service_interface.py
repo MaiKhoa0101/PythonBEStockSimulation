@@ -10,40 +10,42 @@ class IGetListMoviesService(Protocol):
     async def fetch_movies_list(page:int , size:int, q: Optional[str] = None) -> list[Movie]:
         ... 
 class IGetMoviesDetailByName(Protocol):
-    async def fetch_movie_detail_by_name(name: str) -> Any:
+    async def fetch_movie_detail_by_name(self,name: str) -> Any:
         ...
 
 class IGetMoviesDetailById(Protocol):
-    async def fetch_movie_detail_by_id(id: str) -> Any:
+    async def fetch_movie_detail_by_id(self,id: str) -> Any:
         ...
 
 class ICreateMovie(Protocol):
-    async def create_movie(movie_data:MovieCreateDTO):
+    async def create_movie(self,movie_data:MovieCreateDTO):
         ...
 
 class IUpdateEntireMovie(Protocol):
-    async def update_entire_movie(id:str , movie_data: MovieUpdateDTO):
+    async def update_entire_movie(self,id:str , movie_data: MovieUpdateDTO):
         ...
 
 class IPatchMovie(Protocol):
-    async def patch_movie(id:str ,movie_data: MoviePatchDTO):
+    async def patch_movie(self,id:str ,movie_data: MoviePatchDTO):
         ...
 
 class IDeleteMovie(Protocol):
-    async def delete_movie_by_id(id:str):
+    async def delete_movie_by_id(self,id:str):
         ...
         
 class IGetVideoUrlService(Protocol):
     async def get_video_url(
+        self,
         id_episode:str
     ):
         ...
 
 class IUploadEpisode(Protocol):
-    async def upload_episode_video_into_local_system_path(movie_slug: str, episode_id: str, file: UploadFile) -> str:
+    async def upload_episode_video_into_local_system_path(self, movie_slug: str, episode_id: str, file: UploadFile) -> str:
         ...
 
     async def upload_episode_video_hls( 
+        self,
         first_folder: str, 
         episode_slug: str, 
         file: UploadFile, 

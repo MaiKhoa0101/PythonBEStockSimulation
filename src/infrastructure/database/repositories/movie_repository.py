@@ -118,7 +118,6 @@ class MoviesRepositories(IMoviesRepository):
         quality: Optional[str] = None,
         year: Optional[int] = None,
     ) -> dict:
-        print ("Gọi list trong db")
         query = self.db.query(MovieModel).filter(
             MovieModel.is_deleted == False
         )

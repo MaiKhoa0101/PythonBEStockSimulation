@@ -13,7 +13,7 @@ from src.presentation.controller.v1 import category_controller
 from src.presentation.controller.v1 import analytics_controller
 from src.presentation.controller.v1 import admin_log_controller
 from src.presentation.controller.v1 import log_controller
-from src.infrastructure.elasticsearch.es_client import create_movie_index
+from src.infrastructure.elasticsearch.es_client import create_movie_index, recreate_movie_index
 from src.presentation.controller.v1 import short
 from src.presentation.controller.v1 import transaction
 from src.presentation.controller.v1 import subscription, movies, users, collection
@@ -32,6 +32,7 @@ async def lifespan(app: FastAPI):
     )
     print("Đã kết nối Redis thành công")
     create_movie_index()
+    # recreate_movie_index()
     yield
     await redis_pool.close()
     print("Đã ngắt kết nối Redis.")
