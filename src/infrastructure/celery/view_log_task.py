@@ -48,7 +48,7 @@ def _parse_timestamp(raw_ts: str | None) -> datetime:
     acks_late=True,
 )
 def flush_view_logs_buffer(self):
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/1")
+    redis_url = os.getenv("REDIS_URL_CACHE")
     r = SyncRedis.from_url(redis_url, decode_responses=True)
 
     # ── Bước 1: Rút tối đa 500 item khỏi buffer ─────────────────────────────

@@ -106,7 +106,7 @@ async def api_get_movie_list_home(
 
     if result:
         serializable_data = jsonable_encoder(result)
-        await cache_set_json(redis, cache_key, serializable_data, expire=120)
+        await cache_set_json(redis, cache_key, serializable_data, expire=300)
         return {"status": "Success", "data": serializable_data}
 
     return {"status": "Failed", "data": "Lấy danh sách không thành công"}
@@ -120,7 +120,7 @@ async def api_search_movies(
         return {"status": "Failed", "data": "Vui lòng nhập từ khóa tìm kiếm"}
 
     try:
-        result = await search_movies(q.strip())
+        result = search_movies(q.strip())
     except Exception as e:
         logger.error(f"ES lỗi khi search '{q}': {e}")
         result = None
@@ -183,6 +183,16 @@ async def api_get_similar_movies(
 ):
     result = await similarMoviesService.get_similar_movies(movie_id, limit)
     return {"status": "Success", "data": result}
+
+@router.get("/habit/{movie_id}")
+async def api_get_habit_similar_movies(
+    movie_id: str = Path(...),
+    limit: int = 5,
+    habitSimilarMoviesService: IHabitSimilarMoviesService = Depends(IHabitSimilarMoviesDependency),
+):
+    result = await habitSimilarMoviesService.get_habit_similar_movies(movie_id, limit)
+    return {"status": "Success", "data": result}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # WRITE Endpoints
 # ─────────────────────────────────────────────────────────────────────────────

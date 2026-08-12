@@ -15,7 +15,7 @@ from src.infrastructure.elasticsearch.es_client import es_client, MOVIE_INDEX
 logger = logging.getLogger(__name__)
 
 _redis = SyncRedis.from_url(
-    os.getenv("REDIS_URL", "redis://redis:6379/1"),
+    os.getenv("REDIS_URL_CACHE"),
     decode_responses=True,
 )
 

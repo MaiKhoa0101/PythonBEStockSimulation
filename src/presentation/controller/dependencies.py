@@ -2,6 +2,7 @@
 
 from fastapi import Depends
 
+from src.infrastructure.services.movie.habit_similar_movies_service import HabitSimilarMoviesService
 from src.application.interfaces.services.similar_movies_interface import ISimilarMoviesService
 from src.infrastructure.database.redis import get_redis_client
 from src.infrastructure.services.movie.similar_movies import SimilarMoviesService
@@ -54,55 +55,51 @@ from src.infrastructure.external_services.movie_api_gateway import MovieApiGatew
 from src.infrastructure.services.movie.get_movie_by_id import GetMoviesDetailById
 from src.infrastructure.services.movie.get_movie_by_name import GetMoviesDetailByName
 from src.application.interfaces.repositories.movie_repository_interface import IMoviesRepository
-from src.application.interfaces.services.movies_service_interface import ICreateMovie, IDeleteMovie, IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, IGetVideoUrlService, IPatchMovie, IUpdateEntireMovie, IUploadEpisode
+from src.application.interfaces.services.movies_service_interface import ICreateMovie, IDeleteMovie, IGetListMoviesService, IGetMoviesDetailById, IGetMoviesDetailByName, IGetVideoUrlService, IHabitSimilarMoviesService, IPatchMovie, IUpdateEntireMovie, IUploadEpisode
 from src.infrastructure.database.repositories.movie_repository import MoviesRepositories
 from src.infrastructure.services.movie.get_movie_list import GetListMovies
 from sqlalchemy.orm import Session
-from src.infrastructure.database.session import get_db
+from src.infrastructure.database.session import get_db_mysql
 
 def IMoviesExternalServiceDependency():
     return MovieApiGateway()
 
-def IMoviesRepositoryDependency(db: Session = Depends(get_db)):
-    # Nhận db từ Depends(get_db) và nhét vào Repository
+def IMoviesRepositoryDependency(db: Session = Depends(get_db_mysql)):
     return MoviesRepositories(db=db)
 
-def IUserRepositoryDependency(db: Session = Depends(get_db)):
+def IUserRepositoryDependency(db: Session = Depends(get_db_mysql)):
     return UserRepository(db=db)
 
-def ICollectionRepositoryDependency(db: Session = Depends(get_db)):
+def ICollectionRepositoryDependency(db: Session = Depends(get_db_mysql)):
     return CollectionRepository(db=db)
 
-def ISubscriptionRepositoryDependency(db:Session = Depends(get_db)):
+def ISubscriptionRepositoryDependency(db:Session = Depends(get_db_mysql)):
     return SubscriptionRepository(db=db)
 
-def ITransactionRepositoryDependency(db:Session = Depends(get_db)):
+def ITransactionRepositoryDependency(db:Session = Depends(get_db_mysql)):
     return TransactionRepository(db=db)
 
-def IShortRepositoryDependency(db:Session = Depends(get_db)):
+def IShortRepositoryDependency(db:Session = Depends(get_db_mysql)):
     return ShortRepository(db=db)
 
-def ILogRepositoryDependency(db:Session = Depends(get_db)):
+def ILogRepositoryDependency(db:Session = Depends(get_db_mysql)):
     return LogRepository(db=db)
 
-def IAdminLogRepositoryDependency(db: Session = Depends(get_db)) -> IAdminLogRepository:
+def IAdminLogRepositoryDependency(db: Session = Depends(get_db_mysql)) -> IAdminLogRepository:
     return AdminLogRepository(db=db)
  
 def IAnalyticsRepositoryDependency(
     db:       Session = Depends(get_analytics_db), 
-    db_mysql: Session = Depends(get_db),          
+    db_mysql: Session = Depends(get_db_mysql),          
 ) -> IAnalyticsRepository:
     return AnalyticsRepository(db=db, db_mysql=db_mysql)
 
 def ICategoriesRepositoryDependency(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db_mysql)
 ) -> ICategoryRepository:
     return CategoryRepository(db=db)
 
-def ISimilarMoviesDependency(
-    redis=Depends(get_redis_client),
-) -> ISimilarMoviesService:
-    return SimilarMoviesService(redis=redis)
+
 #=================================================ok
 # Bơm phụ thuộc
 def IGetListMoviesServiceDependency(
@@ -271,4 +268,19 @@ def IGetListCategoriesServiceDependency(
     repository: IAnalyticsRepository = Depends(ICategoriesRepositoryDependency),
 ) -> IGetListCategoriesService:
     return GetListCategoriesService(repository=repository)
- 
+
+def ISimilarMoviesDependency(
+    redis=Depends(get_redis_client),
+) -> ISimilarMoviesService:
+    return SimilarMoviesService(redis=redis)
+
+def IHabitSimilarMoviesDependency(
+    redis=Depends(get_redis_client),
+    similar_movies_service: ISimilarMoviesService = Depends(ISimilarMoviesDependency),
+    movie_repository: IMoviesRepository = Depends(IMoviesRepositoryDependency)
+) -> IHabitSimilarMoviesService:
+    return HabitSimilarMoviesService(
+        redis=redis,
+        similar_movies_service=similar_movies_service,
+        movie_repository=movie_repository
+    )

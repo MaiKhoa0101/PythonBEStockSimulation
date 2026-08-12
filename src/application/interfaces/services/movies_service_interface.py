@@ -53,3 +53,8 @@ class IUploadEpisode(Protocol):
         is_short:bool
     ) -> str:
         ...
+
+
+class IHabitSimilarMoviesService(Protocol):
+    async def get_habit_similar_movies(self, movie_id: str, limit: int = 5):
+        ...

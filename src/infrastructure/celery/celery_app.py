@@ -17,6 +17,7 @@ celery_instance = Celery(
     broker=CELERY_BROKER_URL,
     backend=CELERY_RESULT_BACKEND,
     include=[
+        "src.infrastructure.celery.calculate_item_similarity_task",
         "src.infrastructure.celery.hls_task",
         "src.infrastructure.celery.view_count_task",
         "src.infrastructure.celery.expire_premium_task",   
@@ -70,6 +71,11 @@ celery_instance.conf.update(
             "task": "tasks.flush_view_logs_buffer",
             "schedule": 2000.0,
             "options": {"queue": "light_queue"},
+        },
+        "calculate-item-similarity-every-6h": {
+            "task": "tasks.calculate_item_similarity",
+            "schedule": crontab(minute=0, hour="*/6"),
+            "options": {"queue": "heavy_queue"},
         },
     }
 )

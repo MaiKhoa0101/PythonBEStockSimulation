@@ -49,10 +49,10 @@ async def login_user(
     login_user_service: ILoginUser = Depends(ILoginUserDependency)
 ):
     result = await login_user_service.login(login_dto)
-    if result is None:
+    if not result:
         return {
             "status": "error",
-            "data": "Login failed"
+            "data": None
         }
     return {
         "status": "success",

@@ -29,7 +29,7 @@ class Base(DeclarativeBase):
     pass
 # Hàm để lấy database session, 
 # dùng trong dependency injection của FastAPI
-def get_db():
+def get_db_mysql():
     db = SessionLocal() # 1. Mở một phiên làm việc mới
     try:
         yield db        # 2. Tạm dừng ở đây, ném db cho API dùng
