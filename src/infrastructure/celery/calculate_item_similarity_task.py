@@ -2,12 +2,13 @@ import json
 import logging
 import os
 
+from fastapi import Depends
 import pandas as pd
 import redis
 from sklearn.metrics.pairwise import cosine_similarity
 
 from src.infrastructure.celery.celery_app import celery_instance
-from src.infrastructure.database.analytics_session import AnalyticsSessionLocal
+from src.infrastructure.database.analytics_session import AnalyticsSessionLocal, get_analytics_db
 from src.infrastructure.database.models.analytics.movie_view_log import MovieViewLogModel
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ MIN_DURATION_WATCHED_SECONDS = 0
     queue="heavy_queue",
     acks_late=True,
 )
-def calculate_item_similarity_task(self):
+def calculate_item_similarity_task(self, db = Depends(get_analytics_db)):
     db = AnalyticsSessionLocal()
     try:
         query = db.query(

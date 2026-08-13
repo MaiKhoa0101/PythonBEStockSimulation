@@ -12,6 +12,9 @@ from src.application.interfaces.repositories.movie_repository_interface import I
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import inspect as sa_inspect, or_, and_
 
+SIMILAR_MOVIE_FIELDS = ["id", "name", "slug_name", "poster_url", "is_series", "year"]
+
+
 class MoviesRepositories(IMoviesRepository):
     def __init__(self, db: Session): 
         self.db = db
@@ -233,11 +236,67 @@ class MoviesRepositories(IMoviesRepository):
             MovieModel.is_deleted == False
         ).first()
         return db_movie
+    
+    async def get_movies_by_ids(self, ids: list[str]) -> list[dict]:
+        if not ids:
+            return []
+
+        db_movies = (
+            self.db.query(MovieModel)
+            .filter(
+                MovieModel.id.in_(ids),
+                MovieModel.is_deleted == False,
+            )
+            .all()
+        )
+
+        result = []
+        for m in db_movies:                         
+            movie_dict = {}
+            for field in SIMILAR_MOVIE_FIELDS:
+                movie_dict[field] = getattr(m, field) 
+            result.append(movie_dict)
+
+        return result
+
+    async def get_movies_by_category_of(self, movie_id: str, limit: int = 5) -> list[dict]:
+        target_movie = (
+            self.db.query(MovieModel)
+            .options(            
+                joinedload(MovieModel.categories),
+            )
+            .filter(MovieModel.id == movie_id)
+            .first()
+        )
+
+        if not target_movie or not target_movie.categories:
+            return []
+
+        category_ids = [c.id for c in target_movie.categories]
+
+        db_movies = (
+            self.db.query(MovieModel)
+            .filter(
+                MovieModel.categories.any(CategoryModel.id.in_(category_ids)),
+                MovieModel.id != movie_id,
+                MovieModel.is_deleted == False,
+            )
+            .order_by(MovieModel.view.desc()) 
+            .limit(limit)
+            .all()
+        )
+        result = []
+        for m in db_movies:                         
+            movie_dict = {}
+            for field in SIMILAR_MOVIE_FIELDS:  
+                movie_dict[field] = getattr(m, field) 
+            result.append(movie_dict)
+
+        return result
 
     async def create_movie(self, movie_entity: Movie, category_ids: List[str] = None, country_ids: List[str] = None) -> Movie:
         print(f"Gọi create repo với {movie_entity}")
         
-        # 1. Map từ Entity sang Database Model
         db_movie = entity_to_model(
             movie_entity, 
             MovieModel,

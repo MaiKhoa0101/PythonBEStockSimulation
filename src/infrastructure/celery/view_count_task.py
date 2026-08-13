@@ -12,18 +12,18 @@ from src.infrastructure.celery.celery_app import celery_instance
 )
 def sync_view_count():
     redis_url = os.getenv("CELERY_BROKER_URL")
-    r = SyncRedis.from_url(redis_url, decode_responses=True)
+    redis = SyncRedis.from_url(redis_url, decode_responses=True)
     db = SessionLocal()
 
     try:
-        keys = r.keys("view:*")
+        keys = redis.keys("view:*")
         if not keys:
             print("[Sync View] Không có view nào cần sync")
             return
 
         for key in keys:
             movie_id = key.split(":")[1]
-            count = r.getdel(key)
+            count = redis.getdel(key)
             if count:
                 db.query(MovieModel).filter(
                     MovieModel.id == movie_id
@@ -37,4 +37,4 @@ def sync_view_count():
         print(f"[Sync View] Lỗi: {e}")
     finally:
         db.close()
-        r.close()
+        redis.close()

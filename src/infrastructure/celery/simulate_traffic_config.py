@@ -2,10 +2,10 @@
 import hashlib
 
 # Pareto 80/20 — 20% phim được coi là "Trending"
-TRENDING_RATIO = 0.2
+TRENDING_RATIO = 0.1
 
 # Xác suất user chọn phim Trending HOẶC đúng "gu" (preferred category)
-PREFERENCE_WEIGHT = 0.8
+PREFERENCE_WEIGHT = 0.9
 
 # Tỷ lệ % thời lượng xem khi phim ĐÚNG gu/trending
 HIGH_WATCH_RATIO_RANGE = (0.8, 1.0)

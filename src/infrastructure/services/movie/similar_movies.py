@@ -4,6 +4,7 @@ from elasticsearch.exceptions import NotFoundError, ConnectionError as ESConnect
 
 from elasticsearch import NotFoundError
 
+from src.infrastructure.cache.movie_cache import cache_get_json, cache_set_json
 from src.infrastructure.elasticsearch.es_client import get_similar_movies_from_es
 from src.application.interfaces.services.similar_movies_interface import ISimilarMoviesService
 
@@ -13,13 +14,13 @@ class SimilarMoviesService(ISimilarMoviesService):
     def __init__(self, redis):
         self.redis = redis
 
-    async def get_similar_movies(self, movie_id: str, limit: int = 5) -> list[dict]:
+    async def get_similar_movies(self, movie_id: str, limit: int = 5):
         cache_key = f"movie:{movie_id}:similar"
 
         try:
-            cached = await self.redis.get(cache_key)
+            cached = await cache_get_json(self.redis, cache_key)
             if cached:
-                return json.loads(cached)
+                return cached
         except Exception as e:
             logger.warning(f"Redis lỗi khi đọc cache '{cache_key}': {e}")
 
@@ -35,9 +36,8 @@ class SimilarMoviesService(ISimilarMoviesService):
             logger.error(f"Lỗi không xác định khi lấy similar movies cho '{movie_id}': {e}", exc_info=True)
             return []
 
-        # 3. Ghi cache (best-effort — lỗi redis ở bước ghi không được làm hỏng response)
         try:
-            await self.redis.set(cache_key, json.dumps(movies), ex=CACHE_TTL)
+            await cache_set_json(self.redis, cache_key, movies, expire=CACHE_TTL)
         except Exception as e:
             logger.warning(f"Redis lỗi khi ghi cache '{cache_key}': {e}")
 

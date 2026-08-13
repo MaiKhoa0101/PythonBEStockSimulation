@@ -39,7 +39,7 @@ celery_instance.conf.update(
     beat_schedule={
         "sync-view-count": {
             "task": "tasks.sync_view_count",
-            "schedule": 2000.0, 
+            "schedule": 300.0, 
         },
         "expire-premium-users": {
             "task": "tasks.expire_premium_users",
@@ -58,8 +58,8 @@ celery_instance.conf.update(
         },
         "simulate-user-traffic-every-5min": {
             "task":     "tasks.simulate_user_traffic",
-            "schedule": 3900.0,  
-            "kwargs":   {"days_back": 1},  
+            "schedule": 300.0,  
+            "kwargs":   {"days_back": 180},  
             "options":  {"queue": "light_queue"},
         },
         # "sync-movies-from-external-every-5min": {
@@ -69,12 +69,12 @@ celery_instance.conf.update(
         # },
         "flush-view-logs-buffer-every-30s": {
             "task": "tasks.flush_view_logs_buffer",
-            "schedule": 2000.0,
+            "schedule": 3600.0,
             "options": {"queue": "light_queue"},
         },
         "calculate-item-similarity-every-6h": {
             "task": "tasks.calculate_item_similarity",
-            "schedule": crontab(minute=0, hour="*/6"),
+            "schedule": crontab(minute=0, hour=2),
             "options": {"queue": "heavy_queue"},
         },
     }

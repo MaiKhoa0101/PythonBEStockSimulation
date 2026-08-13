@@ -26,6 +26,19 @@ class IMoviesRepository(Protocol):
     ):
         ...
 
+    async def get_movies_by_ids(
+        self, 
+        ids: list[str]
+    ):
+        ...
+
+    async def get_movies_by_category_of(
+        self, 
+        movie_id: str, 
+        limit: int = 5
+    ):
+        ...
+
     async def create_movie(
         self,
         movie_entity: Movie
