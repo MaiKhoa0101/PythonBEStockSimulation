@@ -37,44 +37,50 @@ celery_instance.conf.update(
     timezone="Asia/Ho_Chi_Minh",
     enable_utc=True,
     beat_schedule={
+        # Đồng bộ view_count từ Redis sang Postgres định kì, để giảm độ trễ khi người dùng xem phim.
         "sync-view-count": {
             "task": "tasks.sync_view_count",
-            "schedule": 300.0, 
+            "schedule": 500.0, 
         },
         "expire-premium-users": {
             "task": "tasks.expire_premium_users",
             "schedule": 3000.0,  
         },
+        # Đối soát dữ liệu giữa DB và ES mỗi đêm, để phát hiện phim bị xóa mềm nhưng document vẫn còn trên ES.
         "reconcile-db-to-es-every-night": {
             "task": "tasks.reconcile_movie_data",
-            "schedule": crontab(hour=16, minute=7),
+            "schedule": crontab(hour=13, minute=7),
             "options": {"queue": "light_queue"} 
         },
+        # Tổng hợp dữ liệu từ ES sang Postgres mỗi ngày.
         "aggregate-es-to-postgres-daily": {
             "task":     "tasks.aggregate_es_to_postgres",
-            "schedule": 3600, 
-            "kwargs":   {"days_back": 1}, 
+            "schedule": 300, 
+            "kwargs":   {"days_back": 180}, 
             "options":  {"queue": "light_queue"},
         },
         "simulate-user-traffic-every-5min": {
             "task":     "tasks.simulate_user_traffic",
-            "schedule": 300.0,  
-            "kwargs":   {"days_back": 180},  
+            "schedule": 2000.0,  
+            "kwargs":   {"days_back": 1},  
             "options":  {"queue": "light_queue"},
         },
-        # "sync-movies-from-external-every-5min": {
-        #     "task":     "tasks.sync_movies_from_external",
-        #     "schedule": 2000.0,
-        #     "options":  {"queue": "heavy_queue"},
-        # },
+        "sync-movies-from-external": {
+            "task":     "tasks.sync_movies_from_external",
+            "schedule": 2000.0,
+            "options":  {"queue": "heavy_queue"},
+        },
+        # Làm mới buffer logs xem phim mỗi 1 tiếng.
         "flush-view-logs-buffer-every-30s": {
             "task": "tasks.flush_view_logs_buffer",
             "schedule": 3600.0,
             "options": {"queue": "light_queue"},
         },
+
+        # Tính toán độ tương đồng giữa các phim mỗi 6 tiếng, để phục vụ tính năng gợi ý phim.
         "calculate-item-similarity-every-6h": {
             "task": "tasks.calculate_item_similarity",
-            "schedule": crontab(minute=0, hour=2),
+            "schedule": 900.0,  
             "options": {"queue": "heavy_queue"},
         },
     }
@@ -83,21 +89,22 @@ import src.infrastructure.celery.signal
 
 
 
-_BACKFILL_LOCK_FILE = "/tmp/.sync_movies_backfill_done"
-@beat_init.connect
-def _trigger_one_time_backfill(**kwargs):
-    if os.path.exists(_BACKFILL_LOCK_FILE):
-        logger.info(
-            "[Backfill] Đã chạy sync_movies_from_external trước đó rồi "
-            "(thấy lock file %s) — bỏ qua.", _BACKFILL_LOCK_FILE,
-        )
+# _BACKFILL_LOCK_FILE = "/tmp/.sync_movies_backfill_done"
+# @beat_init.connect
+# def _trigger_one_time_backfill(**kwargs):
+#     if os.path.exists(_BACKFILL_LOCK_FILE):
+#         logger.info(
+#             "[Backfill] Đã chạy sync_movies_from_external trước đó rồi "
+#             "(thấy lock file %s) — bỏ qua.", _BACKFILL_LOCK_FILE,
+#         )
+#         return
 
-    from src.infrastructure.celery.sync_movie_task import sync_movies_from_external
+#     from src.infrastructure.celery.sync_movie_task import sync_movies_from_external
 
-    sync_movies_from_external.si().apply_async()
+#     sync_movies_from_external.si().apply_async()
 
-    try:
-        with open(_BACKFILL_LOCK_FILE, "w") as f:
-            f.write("done")
-    except OSError:
-        logger.exception("[Backfill] Không ghi được lock file %s", _BACKFILL_LOCK_FILE)
+#     try:
+#         with open(_BACKFILL_LOCK_FILE, "w") as f:
+#             f.write("done")
+#     except OSError:
+#         logger.exception("[Backfill] Không ghi được lock file %s", _BACKFILL_LOCK_FILE)

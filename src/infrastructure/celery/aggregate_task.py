@@ -5,9 +5,9 @@ Task gom nhóm dữ liệu tương tác từ Elasticsearch → PostgreSQL.
 Flow (mặc định, days_back=1):
     [Celery Beat, chạy 01:00 sáng mỗi ngày]
         ↓
-    Query ES: lấy toàn bộ sự kiện của NGÀY HÔM QUA
+    Query ES: lấy toàn bộ sự kiện của NGÀY HÔM QUA (composite pagination)
         ↓
-    ES Aggregation: đếm view + like theo từng movie_id
+    ES Aggregation: đếm view + like theo từng movie_id × giờ
         ↓
     Upsert vào PostgreSQL (bảng movie_daily_statistics)
         ↓
@@ -18,14 +18,27 @@ Backfill lịch sử (days_back)
     Đồng bộ với simulate_traffic_task: khi gọi task này với days_back > 1
     (vd: 120), nó lặp cuốn chiếu từ "days_back ngày trước" cho tới "hôm
     qua". MỖI ngày được query ES, parse và upsert Postgres RIÊNG BIỆT
-    (không gộp chung 1 query lớn) — để tránh vượt giới hạn kết quả
-    aggregation của ES và để log rõ ràng theo từng ngày.
+    (không gộp chung 1 query lớn) — để log rõ ràng theo từng ngày.
 
     Dùng khi cần nạp đầy movie_daily_statistics sau khi đã bơm dữ liệu
     giả bằng simulate_traffic_task(days_back=N):
         task_simulate_user_traffic.delay(days_back=120)
         # đợi task trên chạy xong rồi mới gọi:
         task_aggregate_es_to_postgres.delay(days_back=120)
+
+Composite Aggregation + Pagination (after_key)
+─────────────────────────────────────────────────────────
+    THAY ĐỔI QUAN TRỌNG: trước đây dùng "terms" (movie_id) lồng
+    "date_histogram" (giờ) — ES phải build TOÀN BỘ cây bucket
+    (số_phim × số_giờ) trong RAM cùng lúc để trả về 1 lần, dễ vượt giới
+    hạn `search.max_buckets` (mặc định 65,536) khi dữ liệu lớn.
+
+    Giờ dùng "composite" aggregation: gộp (movie_id, giờ) thành 1 khóa
+    ghép phẳng, mỗi lần gọi ES chỉ trả về tối đa COMPOSITE_PAGE_SIZE
+    bucket (mặc định 1000) — an toàn tuyệt đối dưới giới hạn dù dữ liệu
+    lớn tới đâu. Lặp gọi ES nhiều lần, mỗi lần truyền "after_key" của
+    lần trước để lấy tiếp trang kế, cho tới khi ES không còn trả
+    after_key nữa (đã lấy hết dữ liệu của ngày đó).
 """
 
 import logging
@@ -50,17 +63,18 @@ logger = logging.getLogger(__name__)
 
 # ── Hằng số
 INTERACTION_INDEX = "movie_interactions_log"
-MAX_MOVIES_PER_DAY = 10_000
 
 # Độ phân giải bucket khi gom nhóm từ ES → mỗi dòng Postgres = 1 bucket.
-# Đổi thành "minute" nếu cần chi tiết tới từng phút (⚠️ tăng số dòng đáng kể,
-# tối đa ~1440 dòng/phim/ngày thay vì 24). Các giá trị hợp lệ khác của ES:
+# Đổi thành "minute" nếu cần chi tiết tới từng phút (⚠️ tăng số bucket cần
+# lặp trang đáng kể). Các giá trị hợp lệ khác của ES:
 # "minute", "hour", "day", "week", "month".
 AGG_INTERVAL = "hour"
 
-# Định dạng key_as_string mà ES trả về khi "format" ở dưới là
-# strict_date_hour_minute_second — dùng để parse ngược lại thành datetime.
-_ES_BUCKET_FORMAT = "%Y-%m-%dT%H:%M:%S"
+# Số bucket tối đa mỗi lần gọi ES (1 "trang" composite aggregation).
+# Luôn nằm rất xa dưới giới hạn search.max_buckets (65,536 mặc định) —
+# không cần chỉnh giá trị này trừ khi có lý do đặc biệt.
+COMPOSITE_PAGE_SIZE = 1000
+
 
 def _get_day_range(days_before: int = 1) -> tuple[str, str, date]:
     """
@@ -81,50 +95,43 @@ def _get_day_range(days_before: int = 1) -> tuple[str, str, date]:
     return start.strftime("%Y-%m-%dT%H:%M:%S"), end.strftime("%Y-%m-%dT%H:%M:%S"), target
 
 
-def _build_es_query(start: str, end: str, interval: str = AGG_INTERVAL) -> dict:
+def _build_composite_query(
+    start: str,
+    end: str,
+    interval: str = AGG_INTERVAL,
+    after_key: dict | None = None,
+) -> dict:
     """
-    Xây câu truy vấn Elasticsearch Aggregation.
+    Xây câu truy vấn Elasticsearch Composite Aggregation — thay thế cho
+    terms + date_histogram lồng nhau.
 
-    ── Giải thích cú pháp ──────────────────────────────────────────────────────
+    ── Giải thích cú pháp ──────────────────────────────────────────────────
 
-    "size": 0
-        → Không trả về document gốc, chỉ cần kết quả aggregation.
+    "composite.sources"
+        → Danh sách field ghép thành 1 khóa duy nhất, đóng vai trò như
+          GROUP BY movie_id, giờ nhưng KHÔNG lồng cây — phẳng ra 1 tầng.
 
-    "query.bool.filter"
-        → Lọc document trước khi aggregate (dùng filter thay vì must vì
-          không cần tính relevance score → nhanh hơn, cache được).
+    "composite.size"
+        → Giới hạn CỨNG số bucket trả về MỖI LẦN GỌI (1 trang). ES không
+          bao giờ build nhiều hơn con số này trong RAM cùng lúc.
 
-    "aggs.by_movie" (terms — cấp 1)
-        → Gom theo movie_id, giống GROUP BY movie_id.
-
-    "aggs.by_movie.aggs.by_time" (date_histogram — cấp 2, MỚI)
-        → Trong mỗi phim, tiếp tục chia nhỏ theo từng bucket thời gian
-          (mặc định 1 giờ, xem AGG_INTERVAL). Đây là phần cho phép sau
-          này gom nhóm lại theo phút/giờ/ngày/tuần/tháng ở Postgres —
-          không thể gom mịn hơn độ phân giải này.
-
-    "aggs.by_movie.aggs.by_time.aggs.by_action" (terms — cấp 3)
-        → Trong mỗi bucket thời gian, đếm view/like.
+    "composite.after"
+        → Con trỏ phân trang, lấy từ "after_key" của response lần gọi
+          trước. Bỏ qua ở lần gọi đầu tiên (trang đầu).
 
     Kết quả trả về dạng:
     {
         "aggregations": {
-            "by_movie": {
+            "movie_hour_buckets": {
+                "after_key": {"movie_id": "...", "time_bucket": 1720137600000},
                 "buckets": [
                     {
-                        "key": "movie-abc-123",
-                        "by_time": {
+                        "key": {"movie_id": "movie-abc", "time_bucket": 1720137600000},
+                        "doc_count": 15,
+                        "by_action": {
                             "buckets": [
-                                {
-                                    "key_as_string": "2026-07-05T00:00:00",
-                                    "by_action": {
-                                        "buckets": [
-                                            {"key": "view", "doc_count": 12},
-                                            {"key": "like", "doc_count": 3}
-                                        ]
-                                    }
-                                },
-                                ...
+                                {"key": "view", "doc_count": 12},
+                                {"key": "like", "doc_count": 3}
                             ]
                         }
                     },
@@ -133,8 +140,31 @@ def _build_es_query(start: str, end: str, interval: str = AGG_INTERVAL) -> dict:
             }
         }
     }
-    ────────────────────────────────────────────────────────────────────────────
+
+    LƯU Ý: "time_bucket" ở đây là EPOCH MILLISECONDS (số), KHÁC với
+    date_histogram thường (trả "key_as_string" dạng chuỗi ISO) — cần
+    parse bằng datetime.fromtimestamp(ms / 1000, tz=timezone.utc), không
+    dùng strptime.
+    ──────────────────────────────────────────────────────────────────────
     """
+    composite_agg = {
+        "size": COMPOSITE_PAGE_SIZE,
+        "sources": [
+            {"movie_id": {"terms": {"field": "movie_id.keyword"}}},
+            {
+                "time_bucket": {
+                    "date_histogram": {
+                        "field": "timestamp",
+                        "calendar_interval": interval,
+                        "time_zone": "UTC",
+                    }
+                }
+            },
+        ],
+    }
+    if after_key:
+        composite_agg["after"] = after_key
+
     return {
         "size": 0,
         "query": {
@@ -153,28 +183,14 @@ def _build_es_query(start: str, end: str, interval: str = AGG_INTERVAL) -> dict:
             }
         },
         "aggs": {
-            "by_movie": {
-                "terms": {
-                    "field": "movie_id.keyword",
-                    "size":  MAX_MOVIES_PER_DAY,
-                },
+            "movie_hour_buckets": {
+                "composite": composite_agg,
                 "aggs": {
-                    "by_time": {
-                        "date_histogram": {
-                            "field":            "timestamp",
-                            "calendar_interval": interval,
-                            "time_zone":        "UTC",
-                            "format":           "strict_date_hour_minute_second",
-                            "min_doc_count":    1,
-                        },
-                        "aggs": {
-                            "by_action": {
-                                "terms": {
-                                    "field": "action.keyword",
-                                    "size":  2,
-                                }
-                            }
-                        },
+                    "by_action": {
+                        "terms": {
+                            "field": "action.keyword",
+                            "size":  2,
+                        }
                     }
                 },
             }
@@ -182,42 +198,64 @@ def _build_es_query(start: str, end: str, interval: str = AGG_INTERVAL) -> dict:
     }
 
 
-def _parse_aggregation(response: dict) -> list[dict]:
+def _fetch_all_composite_buckets(start: str, end: str, interval: str = AGG_INTERVAL) -> list[dict]:
     """
-    Chuyển kết quả ES aggregation thành danh sách dòng phẳng, mỗi phần tử
-    là 1 bucket thời gian của 1 phim — khớp trực tiếp với 1 dòng Postgres.
+    Lặp gọi ES theo từng trang (composite + after_key) cho tới khi lấy
+    hết toàn bộ bucket của khoảng thời gian [start, end]. Mỗi lần gọi
+    ES chỉ trả về tối đa COMPOSITE_PAGE_SIZE bucket — không bao giờ chạm
+    giới hạn search.max_buckets dù tổng dữ liệu có bao nhiêu bucket.
 
-    Trả về:
+    Trả về danh sách dòng phẳng, mỗi phần tử = 1 bucket (movie × giờ):
         [
-            {"movie_id": "movie-abc-123", "date": datetime(...), "views_count": 12, "likes_count": 3},
+            {"movie_id": "movie-abc", "date": datetime(...), "views_count": 12, "likes_count": 3},
             ...
         ]
     """
-    rows: list[dict] = []
-    buckets = response.get("aggregations", {}).get("by_movie", {}).get("buckets", [])
+    all_rows: list[dict] = []
+    after_key: dict | None = None
+    page_number = 0
 
-    for movie_bucket in buckets:
-        movie_id = movie_bucket["key"]
+    while True:
+        page_number += 1
+        query = _build_composite_query(start, end, interval, after_key)
+        response = es_client.search(index=INTERACTION_INDEX, body=query)
 
-        for time_bucket in movie_bucket.get("by_time", {}).get("buckets", []):
-            bucket_start = datetime.strptime(
-                time_bucket["key_as_string"], _ES_BUCKET_FORMAT
-            ).replace(tzinfo=timezone.utc)
+        agg_result = response.get("aggregations", {}).get("movie_hour_buckets", {})
+        buckets = agg_result.get("buckets", [])
+
+        if not buckets:
+            break  # hết dữ liệu (hoặc trang đầu đã rỗng)
+
+        for bucket in buckets:
+            key = bucket["key"]  # {"movie_id": "...", "time_bucket": <epoch_millis>}
 
             counts = {"view": 0, "like": 0}
-            for action_bucket in time_bucket.get("by_action", {}).get("buckets", []):
+            for action_bucket in bucket.get("by_action", {}).get("buckets", []):
                 action = action_bucket["key"]
                 if action in counts:
                     counts[action] = action_bucket["doc_count"]
 
-            rows.append({
-                "movie_id":    movie_id,
-                "date":        bucket_start,
+            all_rows.append({
+                "movie_id":    key["movie_id"],
+                "date":        datetime.fromtimestamp(key["time_bucket"] / 1000, tz=timezone.utc),
                 "views_count": counts["view"],
                 "likes_count": counts["like"],
             })
 
-    return rows
+        after_key = agg_result.get("after_key")
+        logger.debug(
+            "[Aggregate] Trang %d: nhận %d bucket, after_key=%s",
+            page_number, len(buckets), after_key,
+        )
+
+        if not after_key:
+            break  # ES không còn trang tiếp theo
+
+    logger.info(
+        "[Aggregate] Composite pagination hoàn tất: %d trang, tổng %d bucket",
+        page_number, len(all_rows),
+    )
+    return all_rows
 
 
 def _upsert_to_postgres(rows: list[dict]) -> int:
@@ -225,7 +263,7 @@ def _upsert_to_postgres(rows: list[dict]) -> int:
     Ghi toàn bộ kết quả vào PostgreSQL bằng INSERT ... ON CONFLICT DO UPDATE.
 
     `rows` đã ở dạng phẳng (mỗi phần tử = 1 bucket thời gian của 1 phim,
-    xem _parse_aggregation), nên chỉ cần thêm "id" trước khi insert.
+    xem _fetch_all_composite_buckets), nên chỉ cần thêm "id" trước khi insert.
 
     Dùng PostgreSQL native upsert thay vì query-then-update vì:
       1. Atomic — không có race condition nếu task chạy song song.
@@ -306,8 +344,8 @@ def task_aggregate_es_to_postgres(self, days_back: int = 1):
         return {"status": "Success", "msg": "Index empty, skipped aggregation"}
 
     logger.info(
-        "[Aggregate] Bắt đầu tổng hợp %d ngày dữ liệu, bucket=%s",
-        days_back, AGG_INTERVAL,
+        "[Aggregate] Bắt đầu tổng hợp %d ngày dữ liệu, bucket=%s (composite pagination, page_size=%d)",
+        days_back, AGG_INTERVAL, COMPOSITE_PAGE_SIZE,
     )
 
     daily_breakdown: list[dict] = []
@@ -322,26 +360,11 @@ def task_aggregate_es_to_postgres(self, days_back: int = 1):
             target_date, start_str, end_str,
         )
 
-        # ── Bước 1: Query Elasticsearch (cho ngày này) ──────────────────────
+        # ── Bước 1+2: Query + parse ES qua composite pagination (cho ngày này) ──
         try:
-            query    = _build_es_query(start_str, end_str)
-            response = es_client.search(index=INTERACTION_INDEX, body=query)
-            logger.info(
-                "[Aggregate] Ngày %s: ES query OK — took %dms, tổng sự kiện: %d",
-                target_date,
-                response.get("took", 0),
-                response.get("hits", {}).get("total", {}).get("value", 0),
-            )
+            rows = _fetch_all_composite_buckets(start_str, end_str, AGG_INTERVAL)
         except Exception as exc:
-            logger.exception("[Aggregate] Ngày %s: ES query thất bại: %s", target_date, exc)
-            raise self.retry(exc=exc)
-
-        # ── Bước 2: Parse kết quả aggregation (cho ngày này) ────────────────
-        try:
-            rows = _parse_aggregation(response)
-            logger.info("[Aggregate] Ngày %s: parse xong %d bucket (movie × thời gian)", target_date, len(rows))
-        except Exception as exc:
-            logger.exception("[Aggregate] Ngày %s: parse aggregation thất bại: %s", target_date, exc)
+            logger.exception("[Aggregate] Ngày %s: composite query thất bại: %s", target_date, exc)
             raise self.retry(exc=exc)
 
         if not rows:
